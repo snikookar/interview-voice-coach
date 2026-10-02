@@ -20,7 +20,7 @@ client/next-env.d.ts
 
 # Runtime data (recordings, model caches, embedded DB)
 server/data/
-eval/results/*.json
+eval/results/synthetic_run.json
 eval/filler_clips/*.wav
 eval/judge_agreement/audio/
 

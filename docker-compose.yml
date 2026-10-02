@@ -1,3 +1,13 @@
+# Postgres + pgvector is all most people need from Docker:
+#     docker compose up -d db
+#     DATABASE_URL=postgresql+asyncpg://coach:coach@localhost:5432/coach
+#
+# The full stack (Linux only) runs with host networking:
+#     docker compose --profile app up --build
+# SmallWebRTC sends media over random UDP ports that Docker port-mapping can't
+# forward, so the API container shares the host's network stack. On macOS/Windows,
+# run the server natively (see README) or switch the transport to Daily.
+
 services:
   db:
     image: pgvector/pgvector:pg17
@@ -14,5 +24,31 @@ services:
       interval: 5s
       retries: 10
 
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    network_mode: host
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://coach:coach@127.0.0.1:5432/coach
+    volumes:
+      - coachdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    profiles: ["app"]
+    build:
+      context: client
+      args:
+        API_URL: http://127.0.0.1:7860
+    network_mode: host
+    depends_on:
+      - api
+
 volumes:
   pgdata:
+  coachdata:
