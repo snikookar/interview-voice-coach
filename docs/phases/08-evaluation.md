@@ -45,6 +45,9 @@ LLM time-to-first-token varies by provider, region and minute. Fixing it at 0.4 
 ### Agreement metrics: Spearman *and* quadratic κ
 Spearman only checks ordering, so a judge that is consistently one point harsher scores ρ = 1. Quadratic-weighted κ penalises that offset, which matters because users read absolute scores. Key-point F1 is reported separately because "you missed X" is the most actionable feedback, and it can be wrong even when overall scores agree.
 
+### scipy + scikit-learn instead of DeepEval (spec listed it)
+DeepEval's value is its library of ready-made LLM-graded metrics (G-Eval, faithfulness, …). This project's evaluation questions are **agreement statistics** (rank correlation, weighted kappa, precision/recall against human labels) plus a custom domain judge. Those are a few lines of scipy and scikit-learn, with full control over the definitions and no extra framework. DeepEval would make sense if the judge itself were replaced by its G-Eval metric. That's a reasonable future comparison, run through the same `judge_agreement.py` harness.
+
 ### Blind labelling
 `export_answers.py` never writes the judge's scores into the labelling file, so the human isn't anchored by them.
 
