@@ -51,11 +51,35 @@ async def on_session_end(session_id: str) -> None:
     _spawn(analyze_session(session_id))
 
 
+async def _recover_sessions() -> None:
+    """Finish work a previous server process left behind.
+
+    A call that was live when the server stopped can't be resumed; a session that
+    ended but wasn't analysed (or was mid-analysis) is simply queued again.
+    """
+    async with session_scope() as db:
+        rows = list(
+            await db.scalars(
+                select(SessionRow).where(SessionRow.status.in_(("live", "ended", "analyzing")))
+            )
+        )
+        for row in rows:
+            if row.status == "live":
+                row.status, row.error = "failed", "The server stopped during the call."
+        await db.commit()
+    pending = [r.id for r in rows if r.status in ("ended", "analyzing")]
+    for session_id in pending:
+        _spawn(analyze_session(session_id))
+    if rows:
+        logger.info(f"Recovered sessions: {len(pending)} re-queued for analysis")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
     updated = await sync_bank()
     logger.info(f"Question bank ready ({updated} re-embedded)")
+    await _recover_sessions()
     yield
     await webrtc_handler.close()
     await close_db()

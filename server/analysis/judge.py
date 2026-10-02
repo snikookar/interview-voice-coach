@@ -13,6 +13,10 @@ import difflib
 import json
 import re
 
+# openai imports httpx lazily on first client construction; doing that on the event
+# loop while a worker thread (offline Whisper) imports it too raced ("partially
+# initialized module 'httpx'"). Import it here, at startup, on the main thread.
+import httpx  # noqa: F401
 from loguru import logger
 from openai import AsyncOpenAI, BadRequestError
 from pydantic import BaseModel, Field, ValidationError

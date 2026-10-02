@@ -13,6 +13,11 @@ import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+# Imported eagerly, on the main thread: importing it lazily inside a worker thread
+# raced with the event loop importing httpx ("partially initialized module") when
+# several analyses started at once.
+from faster_whisper import WhisperModel
+
 LONG_PAUSE_SECS = 3.0
 FILLER_PRIMING_PROMPT = (
     "Um, so, uh, I think, like, you know, basically we, um, used it. Uh, I mean, like, yeah."
@@ -155,8 +160,6 @@ def words_from_text(text: str, start_ms: int, end_ms: int) -> list[Word]:
 
 def transcribe_words(audio_path: Path, model_name: str) -> list[Word]:
     """Offline word-level transcription of the candidate track (CPU-heavy: run in a thread)."""
-    from faster_whisper import WhisperModel
-
     model = WhisperModel(model_name, device="auto", compute_type="int8")
     segments, _ = model.transcribe(
         str(audio_path),

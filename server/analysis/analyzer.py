@@ -25,8 +25,9 @@ from analysis.speech_metrics import (
 from config import get_settings
 from db import SessionRow, TurnRow, session_scope
 
-# One offline transcription at a time: it saturates the CPU.
-_transcribe_lock = asyncio.Semaphore(1)
+# One analysis at a time: offline transcription saturates the CPU, and a burst
+# (e.g. sessions re-queued at startup) should drain in order, not all at once.
+_analysis_lock = asyncio.Semaphore(1)
 DIMENSIONS = ("correctness", "depth", "structure", "communication")
 
 
@@ -92,9 +93,8 @@ async def load_words(row: SessionRow, turns: list[TurnRow]) -> tuple[list[Word],
     audio = Path(row.audio_dir) / "user.wav" if row.audio_dir else None
     if audio and audio.exists():
         try:
-            async with _transcribe_lock:
-                model = get_settings().analysis_whisper_model
-                words = await asyncio.to_thread(transcribe_words, audio, model)
+            model = get_settings().analysis_whisper_model
+            words = await asyncio.to_thread(transcribe_words, audio, model)
             return words, f"offline whisper ({model}, word timestamps)"
         except Exception as e:
             logger.warning(f"Offline transcription failed, using live transcript: {e}")
@@ -108,6 +108,11 @@ async def load_words(row: SessionRow, turns: list[TurnRow]) -> tuple[list[Word],
 
 
 async def analyze_session(session_id: str, judge: Judge | None = None) -> dict | None:
+    async with _analysis_lock:
+        return await _analyze(session_id, judge)
+
+
+async def _analyze(session_id: str, judge: Judge | None) -> dict | None:
     async with session_scope() as db:
         row = await db.scalar(
             select(SessionRow)
