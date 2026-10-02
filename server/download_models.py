@@ -8,6 +8,7 @@ dropped connection otherwise leaves a truncated model that later fails to load.
 """
 
 import argparse
+import time
 from pathlib import Path
 
 import requests
@@ -25,17 +26,38 @@ def kokoro_dir() -> Path:
     return get_settings().data_dir / "models" / "kokoro"
 
 
+def _remote_size(url: str, attempts: int = 5) -> int | None:
+    """Size from a HEAD request. Hugging Face sends x-linked-size for LFS files."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return _head_size(url)
+        except requests.RequestException as e:
+            logger.warning(f"HEAD {url} failed ({e}); retry {attempt}/{attempts}")
+            time.sleep(2 * attempt)
+    raise RuntimeError(f"Could not reach {url}")
+
+
+def _head_size(url: str) -> int | None:
+    headers = requests.head(url, allow_redirects=False, timeout=30).headers
+    size = headers.get("x-linked-size") or headers.get("Content-Length")
+    if headers.get("Location") and not headers.get("x-linked-size"):
+        size = requests.head(url, allow_redirects=True, timeout=30).headers.get("Content-Length")
+    return int(size) if size else None
+
+
 def download_resumable(url: str, dest: Path, attempts: int = 5) -> None:
     # The final name only appears after a size-verified rename, so existing == complete.
     if dest.exists():
         return
     dest.parent.mkdir(parents=True, exist_ok=True)
-    total = int(requests.head(url, allow_redirects=True, timeout=30).headers["Content-Length"])
+    total = _remote_size(url)
     part = dest.with_suffix(dest.suffix + ".part")
     for attempt in range(1, attempts + 1):
-        have = part.stat().st_size if part.exists() else 0
+        have = part.stat().st_size if part.exists() and total else 0
         headers = {"Range": f"bytes={have}-"} if have else {}
-        logger.info(f"{dest.name}: {have / 1e6:.0f}/{total / 1e6:.0f} MB (attempt {attempt})")
+        logger.info(
+            f"{dest.name}: {have / 1e6:.0f}/{(total or 0) / 1e6:.0f} MB (attempt {attempt})"
+        )
         try:
             with requests.get(url, headers=headers, stream=True, timeout=60) as resp:
                 resp.raise_for_status()
@@ -43,9 +65,12 @@ def download_resumable(url: str, dest: Path, attempts: int = 5) -> None:
                 with open(part, mode) as f:
                     for chunk in resp.iter_content(chunk_size=1 << 20):
                         f.write(chunk)
+            if total is None:  # size unknown (small files): a clean finish is complete
+                part.replace(dest)
+                return
         except requests.RequestException as e:
             logger.warning(f"{dest.name}: {e}")
-        if part.exists() and part.stat().st_size == total:
+        if total and part.exists() and part.stat().st_size == total:
             part.replace(dest)
             logger.info(f"{dest.name}: done")
             return
@@ -73,11 +98,20 @@ def ensure_embeddings(model: str) -> None:
     TextEmbedding(model_name=model)
 
 
-def ensure_piper(voice: str) -> None:
-    from pipecat.services.piper.tts import PiperTTSService
+def piper_dir() -> Path:
+    return get_settings().data_dir / "models" / "piper"
 
-    logger.info(f"Piper: {voice}")
-    PiperTTSService(settings=PiperTTSService.Settings(voice=voice))
+
+def ensure_piper(voice: str) -> Path:
+    """Download a Piper voice (model + config), e.g. en_US-ryan-high."""
+    lang, name, quality = voice.split("-")
+    base = (
+        "https://huggingface.co/rhasspy/piper-voices/resolve/main/"
+        f"{lang.split('_')[0]}/{lang}/{name}/{quality}/{voice}"
+    )
+    for suffix in (".onnx", ".onnx.json"):
+        download_resumable(base + suffix, piper_dir() / f"{voice}{suffix}")
+    return piper_dir()
 
 
 def main() -> None:

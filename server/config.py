@@ -31,9 +31,9 @@ class Settings(BaseSettings):
     analysis_whisper_model: str = "small.en"
 
     # TTS
-    tts_provider: Literal["kokoro", "piper", "deepgram"] = "kokoro"
+    tts_provider: Literal["kokoro", "piper", "deepgram"] = "piper"
     kokoro_voice: str = "af_heart"
-    piper_voice: str = "en_US-ryan-high"
+    piper_voice: str = "en_US-ryan-medium"
     deepgram_api_key: str = ""
     deepgram_tts_voice: str = "aura-2-thalia-en"
 
@@ -43,6 +43,11 @@ class Settings(BaseSettings):
 
     # Retrieval
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+
+    # Turn-taking: minimum silence before a "finished" verdict from Smart Turn ends the
+    # turn. Interview answers pause up to ~0.7 s between sentences (measured), so the
+    # usual chatbot value of 0.2 s cuts candidates off mid-answer.
+    turn_stop_secs: float = 0.8
 
     # WebRTC
     ice_servers: str = "stun:stun.l.google.com:19302"

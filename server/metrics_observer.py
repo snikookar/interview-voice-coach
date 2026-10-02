@@ -1,49 +1,53 @@
 """Per-stage latency and barge-in measurement.
 
-Two observers watch frames flowing through the pipeline without changing them:
+Two observers watch frames flowing through the pipeline without changing them.
 
-* ``LatencyRecorder`` wraps Pipecat's ``UserBotLatencyObserver``. For every turn it
-  takes the breakdown of "user stopped speaking -> first bot audio" and folds
-  Pipecat's fine-grained spans into the four stages of the spec's latency budget:
-  turn detection, STT, LLM and TTS.
-* ``BargeInObserver`` measures how long the bot keeps talking after the user
-  starts speaking over it (target: under 300 ms).
+``LatencyRecorder`` timestamps five moments of every candidate -> interviewer turn:
+
+    speech_end ──► turn_end ──► llm_done ──► first_audio ──► bot_speaking
+        │  turn detection  │  LLM   │   TTS     │  output   │
+        │  (STT runs in    │        │           │           │
+        │   parallel; the  │        │           │           │
+        │   transcript gate│        │           │           │
+        │   is reported)   │        │           │           │
+
+* speech_end: the candidate's voice last stopped (VAD stop minus its stop_secs)
+* turn_end: the turn is released to the LLM (Smart Turn + min silence + transcript)
+* llm_done: the LLM's decision arrives (a tool call, or the first text token)
+* first_audio: the TTS produces the first audio of the reply
+* bot_speaking: the output transport starts playing it
+
+Each stage is the gap between two consecutive moments, so the stages always sum
+to the total. (An earlier version reused Pipecat's UserBotLatencyObserver spans;
+for answers with pauses they were anchored to the first pause and attributed
+whole seconds to the wrong stage, so they're no longer used.)
+
+``BargeInObserver`` measures how long the bot keeps talking after an interruption.
 """
 
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 
 from loguru import logger
 from pipecat.frames.frames import (
     BotStartedSpeakingFrame,
     BotStoppedSpeakingFrame,
+    FunctionCallInProgressFrame,
     InterruptionFrame,
+    LLMTextFrame,
+    TranscriptionFrame,
+    TTSAudioRawFrame,
+    UserStoppedSpeakingFrame,
+    VADUserStartedSpeakingFrame,
+    VADUserStoppedSpeakingFrame,
 )
 from pipecat.observers.base_observer import BaseObserver, FramePushed
-from pipecat.observers.user_bot_latency_observer import (
-    LatencyBreakdown,
-    MeasuredFrom,
-    UserBotLatencyObserver,
-)
+from pipecat.processors.frame_processor import FrameDirection
 
-# Pipecat span key -> spec stage. Anything unmapped is reported as "other".
-STAGE_OF_SPAN = {
-    "endpointing_wait": "turn",
-    "turn_detection": "turn",
-    "turn_completion": "turn",
-    "waiting_for_user": "turn",
-    "transcription": "stt",
-    "first_request": "llm",
-    "llm_inference": "llm",
-    "llm_tool_call": "llm",
-    "function_handler": "llm",
-    "sentence_aggregation": "tts",
-    "awaiting_speakable_text": "tts",
-    "speech_synthesis": "tts",
-    "output_transport": "transport",
-}
-STAGES = ("turn", "stt", "llm", "tts", "transport", "other")
+STAGES = ("turn", "llm", "tts", "output")
+# Anything longer is not one response (e.g. a stalled turn); keep it out of the stats.
+MAX_VALID_TURN_MS = 15_000
 
 
 @dataclass
@@ -51,48 +55,80 @@ class TurnLatency:
     turn_index: int
     total_ms: float
     stages_ms: dict[str, float]
-    spans_ms: dict[str, float] = field(default_factory=dict)
-    first_turn: bool = False
-
-
-def fold_breakdown(breakdown: LatencyBreakdown) -> tuple[dict[str, float], dict[str, float]]:
-    """Return (stage totals, raw span totals) in milliseconds."""
-    stages = dict.fromkeys(STAGES, 0.0)
-    spans: dict[str, float] = {}
-    for c in breakdown.contributions:
-        ms = c.duration_secs * 1000
-        stages[STAGE_OF_SPAN.get(c.key, "other")] += ms
-        spans[c.key] = spans.get(c.key, 0.0) + ms
-    return {k: round(v, 1) for k, v in stages.items()}, {k: round(v, 1) for k, v in spans.items()}
+    # How long after speech end the final transcript arrived. STT overlaps the
+    # turn-detection wait, so it is reported but not added to the total.
+    stt_ms: float | None = None
 
 
 LatencyCallback = Callable[[TurnLatency], Awaitable[None]]
 
 
-class LatencyRecorder:
-    """Collects one ``TurnLatency`` per bot response."""
+class LatencyRecorder(BaseObserver):
+    """Collects one ``TurnLatency`` per interviewer response."""
 
-    def __init__(self, on_turn: LatencyCallback | None = None):
-        self.observer = UserBotLatencyObserver()
-        self.turns: list[TurnLatency] = []
+    def __init__(
+        self, on_turn: LatencyCallback | None = None, clock: Callable[[], float] = time.time
+    ):
+        super().__init__()
+        self._clock = clock
         self._on_turn = on_turn
-        self.observer.add_event_handler("on_latency_breakdown", self._on_breakdown)
+        self.turns: list[TurnLatency] = []
+        self._reset()
 
-    async def _on_breakdown(self, _observer, breakdown: LatencyBreakdown) -> None:
-        if not breakdown.contributions:
+    def _reset(self) -> None:
+        self._speech_end: float | None = None
+        self._transcript_at: float | None = None
+        self._turn_end: float | None = None
+        self._llm_done: float | None = None
+        self._first_audio: float | None = None
+
+    async def on_push_frame(self, data: FramePushed) -> None:
+        # Pipecat broadcasts some frames in both directions; the downstream copy is
+        # the one that travels mic -> speaker.
+        if data.direction != FrameDirection.DOWNSTREAM:
             return
-        stages, spans = fold_breakdown(breakdown)
-        turn = TurnLatency(
-            turn_index=len(self.turns),
-            total_ms=round(breakdown.total_secs * 1000, 1),
-            stages_ms=stages,
-            spans_ms=spans,
-            first_turn=breakdown.measured_from == MeasuredFrom.CLIENT_CONNECTED,
+        frame, now = data.frame, self._clock()
+
+        if isinstance(frame, VADUserStartedSpeakingFrame):
+            self._reset()  # the candidate (still) talking: start over
+        elif isinstance(frame, VADUserStoppedSpeakingFrame):
+            self._reset()
+            self._speech_end = frame.timestamp - frame.stop_secs
+        elif self._speech_end is None:
+            return
+        elif isinstance(frame, TranscriptionFrame) and self._turn_end is None:
+            self._transcript_at = now
+        elif isinstance(frame, UserStoppedSpeakingFrame) and self._turn_end is None:
+            self._turn_end = now
+        elif self._turn_end is None:
+            return
+        elif isinstance(frame, (FunctionCallInProgressFrame, LLMTextFrame)):
+            self._llm_done = self._llm_done or now
+        elif isinstance(frame, TTSAudioRawFrame) and self._llm_done:
+            self._first_audio = self._first_audio or now
+        elif isinstance(frame, BotStartedSpeakingFrame) and self._first_audio:
+            await self._emit(now)
+
+    async def _emit(self, bot_speaking: float) -> None:
+        points = [self._speech_end, self._turn_end, self._llm_done, self._first_audio, bot_speaking]
+        gaps = [max(0.0, (b - a) * 1000) for a, b in zip(points, points[1:], strict=False)]
+        stages = {name: round(ms, 1) for name, ms in zip(STAGES, gaps, strict=True)}
+        total = round(sum(gaps), 1)
+        stt = (
+            round(max(0.0, (self._transcript_at - self._speech_end) * 1000), 1)
+            if self._transcript_at
+            else None
         )
+        self._reset()
+        if total > MAX_VALID_TURN_MS:
+            logger.debug(f"latency: discarded {total / 1000:.1f}s turn")
+            return
+        turn = TurnLatency(len(self.turns), total, stages, stt)
         self.turns.append(turn)
         logger.info(
-            f"latency turn={turn.turn_index} total={turn.total_ms:.0f}ms "
-            + " ".join(f"{k}={v:.0f}" for k, v in stages.items() if v)
+            f"latency turn={turn.turn_index} total={total:.0f}ms "
+            + " ".join(f"{k}={v:.0f}" for k, v in stages.items())
+            + (f" (stt done +{stt:.0f}ms)" if stt is not None else "")
         )
         if self._on_turn:
             await self._on_turn(turn)
@@ -102,7 +138,7 @@ class LatencyRecorder:
 
 
 class BargeInObserver(BaseObserver):
-    """Time from an interruption to the bot actually going silent."""
+    """Time from an interruption to the bot actually going silent (server side)."""
 
     def __init__(self, clock: Callable[[], float] = time.monotonic):
         super().__init__()
@@ -116,7 +152,6 @@ class BargeInObserver(BaseObserver):
         if not data.first_push:
             return
         frame = data.frame
-
         if isinstance(frame, BotStartedSpeakingFrame):
             self._bot_speaking = True
         elif isinstance(frame, InterruptionFrame) and self._bot_speaking:

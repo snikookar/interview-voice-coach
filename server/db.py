@@ -4,6 +4,8 @@ If DATABASE_URL is empty, an embedded Postgres (pgserver, ships with pgvector) i
 started under ``data/pg`` so the app runs without Docker.
 """
 
+import subprocess
+import time
 import uuid
 from datetime import UTC, datetime
 
@@ -125,7 +127,18 @@ def _resolve_database_url() -> str:
         ) from e
     pg_dir = get_settings().data_dir / "pg"
     pg_dir.mkdir(parents=True, exist_ok=True)
-    _embedded_server = pgserver.get_server(str(pg_dir))
+    # After an unclean shutdown Postgres runs crash recovery, which can take longer
+    # than pgserver's 10 s start timeout on Windows; the server keeps starting in
+    # the background, so retrying attaches to it once it is ready.
+    for attempt in range(1, 7):
+        try:
+            _embedded_server = pgserver.get_server(str(pg_dir))
+            break
+        except subprocess.TimeoutExpired:
+            logger.warning(f"Embedded Postgres still starting (attempt {attempt}), retrying...")
+            time.sleep(5)
+    else:
+        raise RuntimeError(f"Embedded Postgres did not start; see {pg_dir / 'log'}")
     uri = _embedded_server.get_uri()
     logger.info(f"Using embedded Postgres at {uri}")
     return uri.replace("postgresql://", "postgresql+asyncpg://", 1)

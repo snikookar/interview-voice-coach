@@ -9,7 +9,7 @@
 | `server/services.py` | Factory that builds the **STT, LLM and TTS** services from settings, so local and cloud are a `.env` switch |
 | `server/bot.py` | The Pipecat pipeline: `transport.input → STT → user aggregator → LLM → TTS → transport.output → assistant aggregator` |
 | `server/api.py` | FastAPI app. `POST /api/offer` does the WebRTC SDP exchange, `PATCH /api/offer` receives trickle-ICE candidates, and it starts one bot per connection |
-| `server/download_models.py` | Resumable, size-checked model downloads (Kokoro, Whisper, embeddings). Written after a real 325 MB Kokoro download dropped halfway and Pipecat's own downloader left a truncated file that would never load |
+| `server/download_models.py` | Resumable, size-checked model downloads (Piper, Kokoro, Whisper, embeddings), with HEAD retries. Written after a real 325 MB Kokoro download dropped halfway and Pipecat's own downloader left a truncated file that would never load |
 
 ## How a turn flows
 
@@ -45,6 +45,7 @@ Note: Pipecat 1.x replaced `PipelineTask`/`PipelineRunner` with `PipelineWorker`
 A plain silence timeout (say 800 ms) cuts off people who pause to think. That's exactly what candidates do in interviews. Pipecat 1.x splits the job in two:
 1. **Silero VAD** (`stop_secs=0.2`) only answers "is there speech right now?". It's fast and runs on CPU.
 2. **Smart Turn v3**, a small ONNX audio model, looks at the *prosody* of the last segment and answers "did they finish the thought?". A trailing "and then we... um" is classified as *incomplete*, so the bot waits.
+3. A minimum-silence gate (`TURN_STOP_SECS`, added in Phase 5 after measuring real cut-offs; see `turn_strategy.py`), because a *finished sentence* sounds complete even when the answer isn't.
 
 ### STT: **faster-whisper** (local) / **Deepgram nova-3** (cloud)
 - faster-whisper is CTranslate2 with int8 quantisation, roughly 4× faster than openai-whisper on CPU. **The default model came from a measurement, not a guess.** On the dev machine (8-core CPU, no GPU, warm model, 4.4 s clip):
@@ -62,14 +63,14 @@ A plain silence timeout (say 800 ms) cuts off people who pause to think. That's 
 ### LLM: **any OpenAI-compatible endpoint** (DeepSeek by default)
 I used `OpenAILLMService` with a configurable `base_url` instead of a vendor-specific class. The same code then runs DeepSeek, GLM, OpenAI, Groq or a local Ollama, and the latency benchmark can compare them. `max_tokens=220` plus "2–3 sentences" in the prompt keeps turns short, which helps both latency and naturalness.
 
-### TTS: **Kokoro** (default) / **Piper** / **Deepgram Aura**
-| | Kokoro-82M | Piper | Deepgram Aura |
+### TTS: **Piper** (CPU default) / **Kokoro** / **Deepgram Aura**
+| | Piper (`en_US-ryan-medium`) | Kokoro-82M | Deepgram Aura |
 |---|---|---|---|
 | Runs | local ONNX | local ONNX | cloud |
-| Voice quality | near-human | robotic but clear | human |
-| CPU speed | real-time ×3–5 | real-time ×10+ | network-bound |
+| Voice quality | clear, slightly synthetic | near-human | human |
+| **Measured** on the dev CPU (6.3 s question) | **0.44 s (RTF 0.07)** | 4.07 s (RTF 0.59) | network-bound |
 
-Kokoro is the default because voice quality matters in a demo video. Piper is the fallback for slow CPUs. Deepgram reuses the STT key, so cloud mode needs **one** API key.
+I started with Kokoro for voice quality. The end-to-end test (Phase 5) showed why that was wrong on a CPU: TTS synthesises sentences in order, so a long question queued behind "First question." left a **1.7 s silence mid-utterance**. The synthetic candidate took that silence as the end of the bot's turn and started answering, and a human would too. Piper is about 9× faster, so it's the default. Kokoro is one env var away for a GPU or demo recording. Deepgram reuses the STT key, so cloud mode needs **one** API key.
 
 ### Backend: **FastAPI**
 SmallWebRTC peer connections live **inside the Python process**, so the signalling endpoint must run in the same event loop as the bot. FastAPI is async-native and is what Pipecat's own runner uses. Its Pydantic models also generate the OpenAPI docs at `/docs` for free.

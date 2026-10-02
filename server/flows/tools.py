@@ -11,7 +11,7 @@ bank with no second LLM round-trip.
 """
 
 from loguru import logger
-from pipecat.flows import FlowManager, NodeConfig
+from pipecat.flows import NO_RESPONSE, FlowManager, NodeConfig, flows_tool_options
 
 from flows import interview_flow as nodes
 from flows.state import AnswerNote, InterviewState
@@ -32,6 +32,18 @@ def _advance(state: InterviewState, acknowledgement: str) -> NodeConfig:
     return nodes.create_question_node(state, question, acknowledgement, is_first, is_last)
 
 
+def _stale(state: InterviewState, *phases: str) -> bool:
+    """A tool call from an LLM response that started before the last transition.
+
+    The candidate may keep talking after a pause the LLM took for the end of their
+    answer, and an in-flight response can then call a tool that no longer applies.
+    """
+    return state.ended or state.phase not in phases
+
+
+# cancel_on_interruption: if the candidate resumes speaking before the call runs,
+# the "they finished" judgement was wrong, so drop it.
+@flows_tool_options(cancel_on_interruption=True)
 async def next_question(flow_manager: FlowManager, acknowledgement: str) -> tuple[dict, NodeConfig]:
     """Start the questions. Call this as soon as the candidate has finished introducing themselves.
 
@@ -39,10 +51,13 @@ async def next_question(flow_manager: FlowManager, acknowledgement: str) -> tupl
         acknowledgement: A warm reaction to their introduction, 3 to 12 words, for example "Nice to meet you, that's a great background."
     """
     state = get_state(flow_manager)
+    if _stale(state, "intro"):
+        return {"status": "ignored: interview already past the intro"}, NO_RESPONSE
     logger.info(f"[flow] next_question (intro done) session={state.session_id}")
     return {"status": "starting questions"}, _advance(state, acknowledgement)
 
 
+@flows_tool_options(cancel_on_interruption=True)
 async def record_answer(
     flow_manager: FlowManager,
     covered_points: list[str],
@@ -59,6 +74,8 @@ async def record_answer(
         acknowledgement: A brief neutral reaction of 2 to 6 words, like "Okay, thanks." or "Got it." Never say whether the answer was right.
     """
     state = get_state(flow_manager)
+    if _stale(state, "question", "follow_up"):
+        return {"status": "ignored: no open question"}, NO_RESPONSE
     state.add_note(
         AnswerNote(
             phase=state.phase,
@@ -95,6 +112,8 @@ async def end_interview(flow_manager: FlowManager, reason: str) -> tuple[dict, N
         reason: Why the interview is ending, in a few words.
     """
     state = get_state(flow_manager)
+    if state.ended:
+        return {"status": "ignored: already ending"}, NO_RESPONSE
     state.end_reason = f"candidate: {reason}"
     logger.info(f"[flow] end_interview reason={reason!r}")
     return {"status": "ending"}, nodes.create_wrap_up_node(state, "")

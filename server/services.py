@@ -77,8 +77,13 @@ def create_tts(settings: Settings) -> TTSService:
         case "piper":
             from pipecat.services.piper.tts import PiperTTSService
 
+            from download_models import ensure_piper
+
             logger.info(f"TTS: Piper ({settings.piper_voice})")
-            return PiperTTSService(settings=PiperTTSService.Settings(voice=settings.piper_voice))
+            return PiperTTSService(
+                download_dir=ensure_piper(settings.piper_voice),
+                settings=PiperTTSService.Settings(voice=settings.piper_voice),
+            )
         case _:
             from pipecat.services.kokoro.tts import KokoroTTSService
 

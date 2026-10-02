@@ -10,6 +10,7 @@ intro ──next_question──► question ──record_answer──► follow_
 import random
 
 from pipecat.flows import NodeConfig
+from pipecat.frames.frames import LLMFullResponseEndFrame, LLMFullResponseStartFrame, LLMTextFrame
 
 from flows import tools
 from flows.state import InterviewState
@@ -31,6 +32,27 @@ How you behave:
 - When a tool call is needed, call it straight away without saying anything first."""
 
 QUESTION_LEAD_INS = ["Next question.", "Let's move on.", "Here's the next one.", "Okay, next up."]
+
+
+async def _speak(action: dict, flow_manager) -> None:
+    """Speak prepared text exactly like streamed LLM output.
+
+    Pipecat's built-in ``tts_say`` sends the whole text to the TTS as one unit
+    (Kokoro on CPU then synthesises everything before the first sample plays), and
+    Flows blocks the node transition until it has been *played*: an interruption
+    can leave the node half-set. Pushing the text as an LLM response instead lets
+    the TTS sentence aggregator pipeline synthesis with playback, adds the text to
+    the context like any assistant turn, and never blocks the transition.
+    """
+    await flow_manager.worker.queue_frames(
+        [LLMFullResponseStartFrame(), LLMTextFrame(action["text"]), LLMFullResponseEndFrame()]
+    )
+
+
+def say(*parts: str) -> list[dict]:
+    """A non-blocking pre-action that speaks the given text."""
+    text = " ".join(p.strip() for p in parts if p and p.strip())
+    return [{"type": "speak", "handler": _speak, "text": text}] if text else []
 
 
 def _role_message(state: InterviewState) -> str:
@@ -66,7 +88,7 @@ def create_intro_node(state: InterviewState) -> NodeConfig:
                 ),
             }
         ],
-        pre_actions=[{"type": "tts_say", "text": greeting(state)}],
+        pre_actions=say(greeting(state)),
         respond_immediately=False,
         functions=[tools.next_question],
     )
@@ -81,7 +103,6 @@ def create_question_node(
         lead_in = "Here's the last one."
     else:
         lead_in = random.choice(QUESTION_LEAD_INS)
-    spoken = f"{acknowledgement.strip()} {lead_in} {question['question']}".strip()
     return NodeConfig(
         name=f"question_{state.index + 1}",
         task_messages=[
@@ -99,7 +120,7 @@ def create_question_node(
                 ),
             }
         ],
-        pre_actions=[{"type": "tts_say", "text": spoken}],
+        pre_actions=say(acknowledgement, lead_in, question["question"]),
         respond_immediately=False,
         functions=[tools.record_answer],
     )
@@ -108,7 +129,6 @@ def create_question_node(
 def create_follow_up_node(
     state: InterviewState, follow_up: str, acknowledgement: str
 ) -> NodeConfig:
-    spoken = f"{acknowledgement.strip()} {follow_up}".strip()
     return NodeConfig(
         name=f"follow_up_{state.index + 1}",
         task_messages=[
@@ -121,7 +141,7 @@ def create_follow_up_node(
                 ),
             }
         ],
-        pre_actions=[{"type": "tts_say", "text": spoken}],
+        pre_actions=say(acknowledgement, follow_up),
         respond_immediately=False,
         functions=[tools.record_answer],
     )
@@ -136,16 +156,19 @@ def create_wrap_up_node(state: InterviewState, acknowledgement: str) -> NodeConf
         closing = "No problem, let's stop here."
     else:
         closing = "That's all the questions I have."
-    farewell = (
-        f"{acknowledgement.strip()} {closing} Thanks a lot for your time today. "
-        "Your feedback report will be ready in a minute or two. Good luck, and goodbye!"
-    ).strip()
+    farewell = say(
+        acknowledgement,
+        closing,
+        "Thanks a lot for your time today.",
+        "Your feedback report will be ready in a minute or two. Good luck, and goodbye!",
+    )
     return NodeConfig(
         name="wrap_up",
         task_messages=[
             {"role": "developer", "content": "The interview is over. Say nothing more."}
         ],
-        pre_actions=[{"type": "end_conversation", "text": farewell}],
+        # EndFrame is queued behind the farewell, so the call ends once it has played.
+        pre_actions=[*farewell, {"type": "end_conversation"}],
         respond_immediately=False,
         functions=[],
     )

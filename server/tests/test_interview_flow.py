@@ -80,7 +80,8 @@ async def test_last_answer_wraps_up_and_ends_conversation():
     state = fm.state["interview"]
     assert node["name"] == "wrap_up" and state.ended
     assert state.end_reason == "completed"
-    assert node["pre_actions"][0]["type"] == "end_conversation"
+    assert node["pre_actions"][-1]["type"] == "end_conversation"
+    assert "goodbye" in _spoken(node)
 
 
 async def test_out_of_time_skips_follow_up_and_wraps_up():
@@ -97,6 +98,31 @@ async def test_candidate_can_end_early():
     _, node = await tools.end_interview(fm, "has to leave")
     assert node["name"] == "wrap_up"
     assert "let's stop here" in _spoken(node)
+
+
+async def test_stale_tool_calls_are_ignored():
+    from pipecat.flows import NO_RESPONSE
+
+    fm = _fm(n=1)
+    await tools.next_question(fm, "Hi.")
+    # A second next_question from an in-flight response must not skip a question.
+    _, node = await tools.next_question(fm, "Hi again.")
+    assert node is NO_RESPONSE and fm.state["interview"].index == 0
+
+    await tools.record_answer(fm, ["point A"], [], "", "Thanks.")  # -> wrap_up
+    _, node = await tools.record_answer(fm, ["point A"], [], "", "Thanks.")
+    assert node is NO_RESPONSE
+    _, node = await tools.end_interview(fm, "bye")
+    assert node is NO_RESPONSE
+
+
+def test_speech_is_one_non_blocking_action():
+    actions = interview_flow.say("Got it.", "", "Next question.", "What is RAG?")
+    assert len(actions) == 1
+    # A custom action type: Flows never waits for it, so node transitions can't stall.
+    assert actions[0]["type"] == "speak" and callable(actions[0]["handler"])
+    assert actions[0]["text"] == "Got it. Next question. What is RAG?"
+    assert interview_flow.say("", "  ") == []
 
 
 @pytest.mark.parametrize("fn", [tools.next_question, tools.record_answer, tools.end_interview])
