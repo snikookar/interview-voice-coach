@@ -1,0 +1,2092 @@
+# Interview question bank.
+#
+# Every question carries a rubric: `key_points` are what a strong answer covers.
+# The live interviewer uses them to decide on ONE follow-up; the post-session judge
+# uses them to score coverage. Keep key points concrete and independently checkable.
+#
+# Fields: id, role[], level[], topic, type (technical|behavioral), question,
+#         key_points[], follow_ups[], difficulty (1-5)
+# Roles:  ai-engineer, backend      Levels: junior, mid, senior
+
+# ───────────────────────────── Python ─────────────────────────────
+- id: py-001
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: python
+  type: technical
+  question: "What is the difference between a list and a tuple in Python, and when would you pick each?"
+  key_points:
+    - "Lists are mutable, tuples are immutable"
+    - "Tuples are hashable (if their items are) so they can be dict keys or set members"
+    - "Tuples signal fixed-structure records; lists signal homogeneous collections that change"
+    - "Tuples are slightly smaller and faster to create"
+  follow_ups:
+    - "Can a tuple ever change, for example if it contains a list?"
+  difficulty: 1
+
+- id: py-002
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "Explain the Global Interpreter Lock and how it affects concurrency in Python."
+  key_points:
+    - "The GIL lets only one thread execute Python bytecode at a time in CPython"
+    - "CPU-bound work does not speed up with threads; use multiprocessing or native extensions"
+    - "I/O-bound work still benefits from threads or asyncio because the GIL is released while waiting"
+    - "C extensions like NumPy release the GIL during heavy computation"
+    - "Free-threaded CPython builds (PEP 703) are making the GIL optional"
+  follow_ups:
+    - "How would you parallelise a CPU-heavy preprocessing step over a million documents?"
+  difficulty: 3
+
+- id: py-003
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "How does asyncio work, and when is it the right tool compared to threads?"
+  key_points:
+    - "Single-threaded event loop running coroutines cooperatively"
+    - "Coroutines yield control at await points, typically I/O"
+    - "Great for many concurrent I/O-bound tasks such as network calls"
+    - "Blocking calls stall the whole loop; offload them with to_thread or an executor"
+    - "Threads suit blocking libraries without async support"
+  follow_ups:
+    - "What happens if you call a slow synchronous function inside an async endpoint?"
+  difficulty: 3
+
+- id: py-004
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: python
+  type: technical
+  question: "What are Python generators and why would you use them?"
+  key_points:
+    - "Functions using yield that produce values lazily"
+    - "Constant memory for large or infinite sequences"
+    - "Maintain state between iterations automatically"
+    - "Useful for streaming pipelines, like reading a large file line by line"
+  follow_ups:
+    - "How would you use a generator to batch a stream of records?"
+  difficulty: 2
+
+- id: py-005
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "What is a decorator in Python? Give a practical example."
+  key_points:
+    - "A callable that takes a function and returns a new function wrapping it"
+    - "Adds behaviour without changing the original function, like logging, retries, caching or auth"
+    - "Use functools.wraps to keep the name and docstring"
+    - "Decorators with arguments need an extra level of nesting"
+  follow_ups:
+    - "How would you write a retry decorator with exponential backoff?"
+  difficulty: 2
+
+- id: py-006
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: python
+  type: technical
+  question: "Why is using a mutable default argument in a Python function a common bug?"
+  key_points:
+    - "Default values are evaluated once at function definition time"
+    - "The same object is shared across calls, so mutations leak between calls"
+    - "Fix by defaulting to None and creating the object inside the function"
+  follow_ups:
+    - "Where else does evaluation at definition time surprise people?"
+  difficulty: 1
+
+- id: py-007
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "How does memory management and garbage collection work in CPython?"
+  key_points:
+    - "Reference counting frees most objects immediately when the count hits zero"
+    - "A cyclic garbage collector handles reference cycles"
+    - "Generational collection: young objects are checked more often"
+    - "Memory leaks usually come from lingering references, like global caches or closures"
+  follow_ups:
+    - "How would you track down a memory leak in a long-running service?"
+  difficulty: 3
+
+- id: py-008
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "How do you use type hints in a Python codebase, and what do they actually buy you?"
+  key_points:
+    - "Hints are not enforced at runtime by default"
+    - "Static checkers like mypy or pyright catch bugs before running"
+    - "Better editor autocompletion and self-documenting interfaces"
+    - "Runtime validation libraries like Pydantic use them to parse and validate data"
+  follow_ups:
+    - "How would you type a function that accepts any object with a read method?"
+  difficulty: 2
+
+- id: py-009
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: python
+  type: technical
+  question: "What is a context manager and how would you write one?"
+  key_points:
+    - "Used with the with statement to guarantee setup and cleanup"
+    - "Implements __enter__ and __exit__, or uses contextlib.contextmanager with yield"
+    - "Cleanup runs even when an exception is raised"
+    - "Examples: files, locks, database transactions, timers"
+  follow_ups:
+    - "How would you write an async context manager?"
+  difficulty: 2
+
+- id: py-010
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "How do you structure and manage dependencies in a production Python project?"
+  key_points:
+    - "Isolated virtual environments per project"
+    - "Declare dependencies in pyproject.toml"
+    - "Pin exact versions with a lockfile for reproducible builds"
+    - "Separate dev, test and optional dependencies"
+    - "Automated updates and vulnerability scanning"
+  follow_ups:
+    - "How do you handle two libraries that need conflicting versions of a dependency?"
+  difficulty: 2
+
+- id: py-011
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: python
+  type: technical
+  question: "How would you profile and speed up a slow Python function?"
+  key_points:
+    - "Measure first with a profiler such as cProfile or py-spy instead of guessing"
+    - "Find hot spots and improve the algorithm or data structure first"
+    - "Vectorise with NumPy or move hot loops to native code"
+    - "Cache repeated work, for example with functools.lru_cache"
+    - "Use concurrency or multiprocessing where the work allows"
+  follow_ups:
+    - "What would you do if the profiler shows most time is spent waiting on the network?"
+  difficulty: 3
+
+- id: py-012
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: python
+  type: technical
+  question: "How do you write good tests in Python, for example with pytest?"
+  key_points:
+    - "Small, independent tests that each check one behaviour"
+    - "Fixtures for setup and shared resources"
+    - "Mock external dependencies such as networks or APIs"
+    - "Parametrise tests to cover edge cases"
+    - "Run tests in CI on every change"
+  follow_ups:
+    - "How would you test code that calls an LLM API?"
+  difficulty: 2
+
+# ───────────────────────────── ML basics ─────────────────────────────
+- id: ml-001
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "Explain the bias-variance trade-off."
+  key_points:
+    - "Bias is error from overly simple assumptions, which leads to underfitting"
+    - "Variance is sensitivity to the training data, which leads to overfitting"
+    - "Total error combines bias, variance and irreducible noise"
+    - "Model complexity, regularisation and more data move the balance"
+  follow_ups:
+    - "How would you tell from learning curves whether a model has high bias or high variance?"
+  difficulty: 2
+
+- id: ml-002
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "What is overfitting and how do you prevent it?"
+  key_points:
+    - "The model memorises training data and fails to generalise"
+    - "Detected by a gap between training and validation performance"
+    - "Regularisation such as L1, L2, dropout or weight decay"
+    - "More data or data augmentation"
+    - "Early stopping and simpler models"
+  follow_ups:
+    - "Which of these would you try first for a small tabular dataset?"
+  difficulty: 1
+
+- id: ml-003
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "How do precision and recall differ, and when would you prioritise one over the other?"
+  key_points:
+    - "Precision is the share of predicted positives that are correct"
+    - "Recall is the share of actual positives that are found"
+    - "There is a trade-off controlled by the decision threshold"
+    - "Prioritise recall when misses are costly, like fraud or disease screening; precision when false alarms are costly"
+    - "F1 combines both; PR curves help with imbalanced data"
+  follow_ups:
+    - "How would you choose the threshold for a spam filter?"
+  difficulty: 2
+
+- id: ml-004
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: ml-basics
+  type: technical
+  question: "How do you handle a heavily imbalanced classification dataset?"
+  key_points:
+    - "Accuracy is misleading; use precision, recall, F1 or PR-AUC"
+    - "Resampling: oversample the minority class, for example with SMOTE, or undersample the majority"
+    - "Class weights in the loss function"
+    - "Tune the decision threshold for the business cost"
+    - "Collect more minority-class data if possible"
+  follow_ups:
+    - "What can go wrong if you oversample before splitting train and test?"
+  difficulty: 3
+
+- id: ml-005
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "Why do we split data into training, validation and test sets?"
+  key_points:
+    - "Training set fits the model parameters"
+    - "Validation set tunes hyperparameters and selects models"
+    - "Test set gives an unbiased final estimate and is used once"
+    - "Cross-validation when data is small"
+    - "Splits must avoid leakage, such as time-based splits for temporal data"
+  follow_ups:
+    - "How would you split data for a model that forecasts next month's sales?"
+  difficulty: 1
+
+- id: ml-006
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: ml-basics
+  type: technical
+  question: "What is data leakage? Give an example and explain how to avoid it."
+  key_points:
+    - "Information unavailable at prediction time leaks into training"
+    - "Examples: target-derived features, preprocessing fitted on the full dataset, future data in time series"
+    - "Leads to great offline metrics and poor production performance"
+    - "Fit preprocessing inside the training fold, for example with pipelines, and split by time or group"
+  follow_ups:
+    - "How might leakage happen when the same user appears in both training and test sets?"
+  difficulty: 3
+
+- id: ml-007
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "Explain how gradient descent trains a neural network."
+  key_points:
+    - "A loss function measures prediction error"
+    - "Backpropagation computes gradients of the loss with respect to the weights"
+    - "Weights move in the negative gradient direction scaled by the learning rate"
+    - "Mini-batch stochastic updates trade noise for speed"
+    - "Optimisers like Adam adapt the step size per parameter"
+  follow_ups:
+    - "What happens if the learning rate is too high or too low?"
+  difficulty: 2
+
+- id: ml-008
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: ml-basics
+  type: technical
+  question: "When would you use a gradient-boosted tree model instead of a neural network?"
+  key_points:
+    - "Tabular data with heterogeneous features: boosted trees often win"
+    - "Less data needed and faster training"
+    - "Handle missing values and feature scales natively"
+    - "Easier to interpret with feature importance or SHAP"
+    - "Neural networks win on unstructured data like text, images and audio"
+  follow_ups:
+    - "How would you explain a single prediction of a boosted tree model to a stakeholder?"
+  difficulty: 3
+
+- id: ml-009
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: ml-basics
+  type: technical
+  question: "What is regularisation and how do L1 and L2 differ?"
+  key_points:
+    - "Adds a penalty on weight size to the loss to reduce overfitting"
+    - "L1 penalises absolute values and pushes weights to exactly zero, which gives sparsity and feature selection"
+    - "L2 penalises squared values and shrinks weights smoothly"
+    - "The strength is a hyperparameter tuned on validation data"
+  follow_ups:
+    - "Why does L1 produce exactly-zero weights while L2 doesn't?"
+  difficulty: 2
+
+- id: ml-010
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: ml-basics
+  type: technical
+  question: "What are embeddings, and how are they used in modern ML systems?"
+  key_points:
+    - "Dense vectors representing items where similar items are close together"
+    - "Learned by models, for example contrastive training for sentence embeddings"
+    - "Used for semantic search, clustering, recommendations and classification features"
+    - "Similarity is measured with cosine or dot product"
+    - "Dimensionality and domain fit affect quality and cost"
+  follow_ups:
+    - "How would you check whether an off-the-shelf embedding model fits your domain?"
+  difficulty: 2
+
+# ───────────────────────────── LLMs & transformers ─────────────────────────────
+- id: llm-001
+  role: [ai-engineer]
+  level: [junior, mid, senior]
+  topic: llm
+  type: technical
+  question: "Explain how self-attention works in a transformer."
+  key_points:
+    - "Each token is projected into query, key and value vectors"
+    - "Attention weights are the softmax of query-key dot products, scaled by the square root of the dimension"
+    - "The output is a weighted sum of value vectors"
+    - "Multiple heads learn different relationships in parallel"
+    - "Cost grows quadratically with sequence length"
+  follow_ups:
+    - "Why do we divide by the square root of the key dimension?"
+  difficulty: 3
+
+- id: llm-002
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: llm
+  type: technical
+  question: "What is tokenisation, and why does it matter when working with LLMs?"
+  key_points:
+    - "Text is split into subword tokens, for example with BPE"
+    - "Context limits and pricing are counted in tokens, not words"
+    - "Rare words, code and non-English text use more tokens"
+    - "Tokenisation explains odd behaviour like poor character counting or arithmetic"
+  follow_ups:
+    - "How would you estimate the monthly cost of an LLM feature?"
+  difficulty: 1
+
+- id: llm-003
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "Compare prompt engineering, RAG and fine-tuning. When would you use each?"
+  key_points:
+    - "Prompting first: cheapest and fastest to iterate"
+    - "RAG when the model needs fresh, private or citable knowledge"
+    - "Fine-tuning to change behaviour, format, style or latency, not mainly to add facts"
+    - "They can be combined, like a fine-tuned model plus RAG"
+    - "Decide based on evaluation results, cost and maintenance"
+  follow_ups:
+    - "A client wants the model to know their 500-page product manual. Which approach and why?"
+  difficulty: 3
+
+- id: llm-004
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "What causes LLM hallucinations and how do you reduce them in a product?"
+  key_points:
+    - "Models predict plausible text, not verified facts"
+    - "Ground answers in retrieved sources and ask for citations"
+    - "Instruct the model to say it doesn't know when the context lacks the answer"
+    - "Constrain outputs with structured formats and validation"
+    - "Measure with faithfulness evals and human review"
+  follow_ups:
+    - "How would you detect hallucinations automatically in production?"
+  difficulty: 3
+
+- id: llm-005
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: llm
+  type: technical
+  question: "What do temperature and top-p control when sampling from an LLM?"
+  key_points:
+    - "Temperature scales the logits: low is focused and deterministic, high is diverse"
+    - "Top-p samples from the smallest token set whose probability sums to p"
+    - "Low values for extraction or classification; higher values for creative tasks"
+    - "Even temperature zero is not always fully deterministic"
+  follow_ups:
+    - "Which settings would you use for an LLM judge, and why?"
+  difficulty: 1
+
+- id: llm-006
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "How does LoRA work, and why is it popular for fine-tuning?"
+  key_points:
+    - "Freezes the base weights and learns low-rank update matrices"
+    - "Trains a tiny fraction of the parameters, so less memory and compute"
+    - "Adapters are small files and can be swapped per task"
+    - "QLoRA adds a 4-bit quantised base model for even lower memory"
+    - "Rank and target modules are key hyperparameters"
+  follow_ups:
+    - "How would you decide the LoRA rank for a task?"
+  difficulty: 4
+
+- id: llm-007
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "What is the KV cache and why does it matter for LLM inference latency?"
+  key_points:
+    - "Stores attention keys and values of previous tokens"
+    - "Avoids recomputing the whole prefix for every new token"
+    - "Memory grows with sequence length and batch size"
+    - "Techniques like paged attention and prefix caching manage it efficiently"
+  follow_ups:
+    - "How does prompt or prefix caching reduce cost for a chatbot with a long system prompt?"
+  difficulty: 4
+
+- id: llm-008
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "How would you reduce latency and cost of an LLM-powered feature?"
+  key_points:
+    - "Stream tokens so the user sees output immediately"
+    - "Use smaller or distilled models where quality allows, and route by difficulty"
+    - "Shorten prompts and cap output length"
+    - "Cache responses and use provider prompt caching"
+    - "Batch requests and run independent calls in parallel"
+  follow_ups:
+    - "How would you decide which requests can go to the smaller model?"
+  difficulty: 3
+
+- id: llm-009
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: llm
+  type: technical
+  question: "What is a context window, and what do you do when your input doesn't fit?"
+  key_points:
+    - "The maximum number of tokens the model can attend to, input plus output"
+    - "Chunk and retrieve only relevant parts with RAG"
+    - "Summarise or compress earlier content, for example map-reduce summarisation"
+    - "Long contexts cost more and models can miss information in the middle"
+  follow_ups:
+    - "How would you handle a chatbot conversation that grows past the context limit?"
+  difficulty: 2
+
+- id: llm-010
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "How do you get reliable structured output, like JSON, from an LLM?"
+  key_points:
+    - "Use native structured output, JSON mode or function calling"
+    - "Provide a schema and examples in the prompt"
+    - "Validate with a schema library such as Pydantic"
+    - "Retry or repair on validation failure"
+    - "Constrained decoding guarantees valid syntax"
+  follow_ups:
+    - "What would you do if the JSON is valid but the values are wrong?"
+  difficulty: 2
+
+- id: llm-011
+  role: [ai-engineer]
+  level: [senior]
+  topic: llm
+  type: technical
+  question: "What is quantisation of LLMs, and what are the trade-offs?"
+  key_points:
+    - "Stores weights at lower precision, like 8-bit or 4-bit, instead of 16-bit"
+    - "Cuts memory and often speeds up inference"
+    - "Some quality loss, larger at very low bit widths"
+    - "Methods such as GPTQ, AWQ and GGUF formats"
+    - "Measure quality on your own evals before deploying"
+  follow_ups:
+    - "How would you decide between a quantised large model and an unquantised small model?"
+  difficulty: 4
+
+- id: llm-012
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "What is prompt injection, and how do you defend an LLM application against it?"
+  key_points:
+    - "Untrusted input contains instructions that override the system prompt"
+    - "Indirect injection through retrieved documents, web pages or emails"
+    - "No complete fix: use defence in depth"
+    - "Least-privilege tools and human confirmation for risky actions"
+    - "Separate and mark untrusted content, filter outputs, and monitor"
+  follow_ups:
+    - "How would you protect an email assistant that can send messages?"
+  difficulty: 4
+
+- id: llm-013
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "How do instruction tuning and RLHF change a base language model?"
+  key_points:
+    - "A base model only predicts the next token on web text"
+    - "Supervised fine-tuning on instruction-response pairs teaches it to follow instructions"
+    - "RLHF or DPO optimises for human preferences using comparisons"
+    - "Makes the model more helpful and safer, but can add verbosity or sycophancy"
+  follow_ups:
+    - "How does DPO differ from classic RLHF with a reward model?"
+  difficulty: 4
+
+- id: llm-014
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: llm
+  type: technical
+  question: "How would you choose which LLM to use for a new product feature?"
+  key_points:
+    - "Define the task and build a small evaluation set first"
+    - "Compare quality on that eval, not on public leaderboards alone"
+    - "Consider latency, cost per request and context length"
+    - "Privacy, data residency and hosting: API versus self-hosted"
+    - "Plan for switching models: abstract the provider"
+  follow_ups:
+    - "What would make you choose an open-weight model over an API model?"
+  difficulty: 2
+
+# ───────────────────────────── RAG ─────────────────────────────
+- id: rag-001
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "How would you evaluate the retrieval quality of a RAG system?"
+  key_points:
+    - "Recall@k / Precision@k on labeled query-doc pairs"
+    - "MRR or nDCG for ranking quality"
+    - "Building a golden dataset (synthetic + human-verified)"
+    - "Separating retrieval eval from generation eval (faithfulness)"
+  follow_ups:
+    - "How would you build the labeled dataset if you had none?"
+  difficulty: 3
+
+- id: rag-002
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: rag
+  type: technical
+  question: "Walk me through the components of a basic retrieval-augmented generation pipeline."
+  key_points:
+    - "Ingest and chunk documents"
+    - "Embed chunks and store them in a vector index"
+    - "Embed the query and retrieve the top-k similar chunks"
+    - "Put retrieved chunks into the prompt and generate an answer"
+    - "Cite sources and handle the case when nothing relevant is found"
+  follow_ups:
+    - "Where in this pipeline do most quality problems come from in your experience?"
+  difficulty: 2
+
+- id: rag-003
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "How do you choose a chunking strategy for RAG?"
+  key_points:
+    - "Chunk size trades off context completeness against retrieval precision"
+    - "Overlap prevents splitting an idea across chunks"
+    - "Structure-aware chunking by headings, paragraphs or code blocks"
+    - "Add metadata like title and section to chunks"
+    - "Tune chunking empirically with retrieval evals"
+  follow_ups:
+    - "How would you chunk a long PDF full of tables?"
+  difficulty: 3
+
+- id: rag-004
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "What is hybrid search, and why combine keyword and vector retrieval?"
+  key_points:
+    - "Keyword search like BM25 matches exact terms, IDs and rare words"
+    - "Vector search matches meaning and paraphrases"
+    - "Combine results with reciprocal rank fusion or weighted scores"
+    - "Improves recall across different query types"
+  follow_ups:
+    - "Give an example query where pure vector search fails."
+  difficulty: 3
+
+- id: rag-005
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "What does a reranker do in a RAG pipeline, and when is it worth the cost?"
+  key_points:
+    - "A cross-encoder scores each query-document pair jointly"
+    - "More accurate than bi-encoder similarity but slower"
+    - "Retrieve many candidates cheaply, then rerank to a small top-k"
+    - "Worth it when precision at the top matters and latency allows"
+  follow_ups:
+    - "How many candidates would you rerank, and how would you decide?"
+  difficulty: 3
+
+- id: rag-006
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "Your RAG chatbot gives wrong answers. How do you debug it?"
+  key_points:
+    - "Check whether the right chunks were retrieved at all, which isolates retrieval from generation"
+    - "Inspect chunking, embeddings and query phrasing for retrieval failures"
+    - "If context is right, check the prompt and whether the model ignores or misreads it"
+    - "Build a failing-case set and track metrics per stage"
+    - "Use tracing to see the exact prompt and context"
+  follow_ups:
+    - "What if the right chunk is retrieved but ranked tenth?"
+  difficulty: 3
+
+- id: rag-007
+  role: [ai-engineer]
+  level: [senior]
+  topic: rag
+  type: technical
+  question: "How would you design a RAG system over millions of documents with access control?"
+  key_points:
+    - "Scalable ingestion pipeline with incremental updates"
+    - "Vector database with metadata filtering"
+    - "Enforce permissions at query time with filters on user ACLs"
+    - "Never rely on the LLM to hide unauthorised content"
+    - "Monitor freshness, latency and retrieval quality"
+  follow_ups:
+    - "How do you handle a document whose permissions change?"
+  difficulty: 5
+
+- id: rag-008
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "How do you measure whether a RAG answer is faithful to its sources?"
+  key_points:
+    - "Faithfulness means every claim is supported by the retrieved context"
+    - "Break the answer into claims and check each against the context"
+    - "LLM-as-judge or NLI models automate the check"
+    - "Validate the judge against human labels"
+    - "Faithfulness differs from answer correctness and relevance"
+  follow_ups:
+    - "How would you validate that your faithfulness judge is trustworthy?"
+  difficulty: 4
+
+- id: rag-009
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "What query transformation techniques can improve retrieval?"
+  key_points:
+    - "Query rewriting to fix vague or conversational queries"
+    - "Multi-query: generate several paraphrases and merge results"
+    - "HyDE: embed a hypothetical answer instead of the question"
+    - "Decompose complex questions into sub-questions"
+    - "Each adds latency and cost, so measure the gain"
+  follow_ups:
+    - "How would you handle a follow-up question like 'what about the second one?'"
+  difficulty: 4
+
+- id: rag-010
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: rag
+  type: technical
+  question: "How would you choose a vector database for a project?"
+  key_points:
+    - "Scale: number of vectors and query load"
+    - "Metadata filtering and hybrid search support"
+    - "Operational fit: managed service or an extension like pgvector in an existing database"
+    - "Index types like HNSW and their recall-latency trade-off"
+    - "Cost and team familiarity"
+  follow_ups:
+    - "When is pgvector enough, and when would you move to a dedicated vector database?"
+  difficulty: 2
+
+- id: rag-011
+  role: [ai-engineer]
+  level: [senior]
+  topic: rag
+  type: technical
+  question: "Explain how HNSW indexing works and its trade-offs."
+  key_points:
+    - "Hierarchical graph of proximity links, with sparse upper layers and dense lower layers"
+    - "Search greedily descends layers toward the nearest neighbours"
+    - "Approximate: trades a little recall for big speed gains"
+    - "Parameters like M and ef control recall, speed and memory"
+    - "Memory heavy and slower to build than flat indexes"
+  follow_ups:
+    - "What would you tune if recall is too low?"
+  difficulty: 5
+
+- id: rag-012
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: rag
+  type: technical
+  question: "What is Maximal Marginal Relevance and when would you use it in retrieval?"
+  key_points:
+    - "Selects results that are relevant to the query but different from already-selected results"
+    - "A lambda parameter balances relevance against diversity"
+    - "Avoids near-duplicate chunks filling the context"
+    - "Useful when sources are redundant or topics should be varied"
+  follow_ups:
+    - "How would you pick the value of lambda?"
+  difficulty: 3
+
+# ───────────────────────────── Agents ─────────────────────────────
+- id: agent-001
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: agents
+  type: technical
+  question: "What is an LLM agent, and how is it different from a simple LLM call?"
+  key_points:
+    - "Runs in a loop: reason, choose an action or tool, observe the result, repeat"
+    - "Uses tools such as APIs, search or code execution through function calling"
+    - "Keeps state or memory across steps"
+    - "Decides its own control flow instead of following a fixed chain"
+  follow_ups:
+    - "When would you avoid an agent and use a fixed workflow instead?"
+  difficulty: 2
+
+- id: agent-002
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "How does function calling or tool use work with LLMs?"
+  key_points:
+    - "Tools are described to the model with a name, description and JSON schema"
+    - "The model returns a structured call instead of text"
+    - "The application executes the tool and returns the result to the model"
+    - "Clear descriptions and validation of arguments are critical"
+    - "Handle errors and timeouts and feed them back to the model"
+  follow_ups:
+    - "How do you stop the model from calling a tool with harmful arguments?"
+  difficulty: 2
+
+- id: agent-003
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "What are the most common failure modes of LLM agents, and how do you mitigate them?"
+  key_points:
+    - "Infinite loops or repeated actions: cap steps and detect repetition"
+    - "Wrong tool choice or bad arguments: better tool descriptions and validation"
+    - "Error compounding over long tasks"
+    - "Cost and latency blow-up"
+    - "Observability with traces of every step"
+  follow_ups:
+    - "How would you evaluate an agent that takes ten steps to finish a task?"
+  difficulty: 3
+
+- id: agent-004
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "How would you give an agent memory across long conversations or sessions?"
+  key_points:
+    - "Short-term memory is the conversation in the context window"
+    - "Summarise or trim older turns when the context grows"
+    - "Long-term memory stored externally, retrieved by relevance"
+    - "Decide what is worth saving and when to update or forget it"
+    - "Privacy and user control over stored memories"
+  follow_ups:
+    - "How do you prevent stale memories from misleading the agent?"
+  difficulty: 3
+
+- id: agent-005
+  role: [ai-engineer]
+  level: [senior]
+  topic: agents
+  type: technical
+  question: "When would you use a multi-agent architecture instead of a single agent?"
+  key_points:
+    - "When subtasks need different tools, prompts or context"
+    - "Parallelism for independent subtasks"
+    - "An orchestrator delegates and combines results"
+    - "Costs: more tokens, coordination overhead and harder debugging"
+    - "Start with a single agent and split only when evaluation shows a benefit"
+  follow_ups:
+    - "How would agents share information without blowing up the context?"
+  difficulty: 4
+
+- id: agent-006
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "How do you evaluate an AI agent?"
+  key_points:
+    - "Task success rate on a realistic benchmark of tasks"
+    - "Trajectory evaluation: correct tools, steps and arguments"
+    - "Efficiency: steps, tokens, latency and cost per task"
+    - "Safety checks for harmful or irreversible actions"
+    - "Deterministic test environments with mocked tools for reproducibility"
+  follow_ups:
+    - "How would you make agent evals reproducible when the LLM is non-deterministic?"
+  difficulty: 4
+
+- id: agent-007
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "What is the ReAct pattern?"
+  key_points:
+    - "Interleaves reasoning traces with actions"
+    - "Thought, action, observation loop"
+    - "Observations from tools ground the next reasoning step"
+    - "Improves interpretability and reduces hallucination compared to reasoning alone"
+  follow_ups:
+    - "How has native tool calling changed how ReAct is implemented today?"
+  difficulty: 3
+
+- id: agent-008
+  role: [ai-engineer]
+  level: [senior]
+  topic: agents
+  type: technical
+  question: "How would you design guardrails for an agent that can take real-world actions, like sending emails or making purchases?"
+  key_points:
+    - "Least privilege: only the tools and scopes needed"
+    - "Human approval for irreversible or high-risk actions"
+    - "Validate tool arguments and enforce limits like spend caps"
+    - "Treat retrieved content as untrusted to resist prompt injection"
+    - "Audit logs and the ability to undo or stop"
+  follow_ups:
+    - "Which actions would you allow without confirmation?"
+  difficulty: 5
+
+- id: agent-009
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "What is the Model Context Protocol, and what problem does it solve?"
+  key_points:
+    - "An open standard for connecting LLM applications to tools and data sources"
+    - "Servers expose tools, resources and prompts; clients consume them"
+    - "Removes custom integration code for each model and tool pair"
+    - "Security concerns: trust in servers, permissions and injection"
+  follow_ups:
+    - "What risks come with installing a third-party MCP server?"
+  difficulty: 3
+
+- id: agent-010
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: agents
+  type: technical
+  question: "How would you build a real-time voice agent with low latency?"
+  key_points:
+    - "Pipeline of voice activity detection, speech-to-text, LLM and text-to-speech"
+    - "Stream every stage: the LLM feeds TTS sentence by sentence"
+    - "Turn detection that doesn't cut off pauses"
+    - "Support interruptions, also called barge-in"
+    - "Measure latency per stage and optimise the biggest contributor"
+  follow_ups:
+    - "Which stage would you optimise first if latency is 3 seconds?"
+  difficulty: 4
+
+# ───────────────────────────── Evaluation ─────────────────────────────
+- id: eval-001
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "How would you set up evaluation for an LLM application before launch?"
+  key_points:
+    - "Define success criteria tied to the product goal"
+    - "Build a representative test set, including edge cases and adversarial inputs"
+    - "Mix automatic metrics, LLM-as-judge and human review"
+    - "Run evals in CI to catch regressions on prompt or model changes"
+    - "Continue with online monitoring and feedback after launch"
+  follow_ups:
+    - "How big does the test set need to be?"
+  difficulty: 3
+
+- id: eval-002
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "What is LLM-as-a-judge, and what are its pitfalls?"
+  key_points:
+    - "An LLM scores outputs against a rubric or compares two outputs"
+    - "Scales cheaper than human evaluation"
+    - "Biases: position, verbosity, self-preference"
+    - "Mitigate with clear rubrics, few-shot examples and swapped orderings"
+    - "Must be validated against human ratings, for example with correlation or kappa"
+  follow_ups:
+    - "How would you measure agreement between the judge and humans?"
+  difficulty: 3
+
+- id: eval-003
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "How do you build a golden dataset for evaluating an LLM system when you have no labelled data?"
+  key_points:
+    - "Collect real or realistic user queries"
+    - "Generate synthetic examples with an LLM to expand coverage"
+    - "Human experts verify and correct the labels"
+    - "Cover edge cases, failure modes and different difficulty levels"
+    - "Version the dataset and grow it from production failures"
+  follow_ups:
+    - "How do you avoid the synthetic data being too easy?"
+  difficulty: 3
+
+- id: eval-004
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "How would you A/B test a change to an LLM prompt in production?"
+  key_points:
+    - "Define a primary metric, like task success or user satisfaction, and guardrail metrics"
+    - "Randomly split traffic between variants"
+    - "Compute required sample size and run long enough for significance"
+    - "Watch cost and latency as well as quality"
+    - "Offline evals first to reduce risk"
+  follow_ups:
+    - "What would you do if quality improves but cost doubles?"
+  difficulty: 3
+
+- id: eval-005
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: evaluation
+  type: technical
+  question: "What metrics would you use to evaluate a text summarisation system?"
+  key_points:
+    - "Overlap metrics like ROUGE have limited correlation with quality"
+    - "Faithfulness or factual consistency with the source"
+    - "Coverage of key information"
+    - "Fluency, conciseness and length"
+    - "Human evaluation or a validated LLM judge"
+  follow_ups:
+    - "How would you detect a summary that adds facts not in the source?"
+  difficulty: 2
+
+- id: eval-006
+  role: [ai-engineer]
+  level: [senior]
+  topic: evaluation
+  type: technical
+  question: "How do you know if an automatic metric is trustworthy?"
+  key_points:
+    - "Compare it with human judgments on a sample"
+    - "Use correlation such as Spearman or Kendall for scores"
+    - "Use agreement such as Cohen's kappa for labels"
+    - "Check for systematic biases on subgroups"
+    - "Report confidence intervals and the sample size"
+  follow_ups:
+    - "What Spearman correlation would you accept, and why?"
+  difficulty: 4
+
+- id: eval-007
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "What should you monitor for an LLM application running in production?"
+  key_points:
+    - "Latency, error rates and cost per request"
+    - "Quality signals: user feedback, sampled judge scores"
+    - "Input drift and new query types"
+    - "Safety issues like prompt injection attempts and toxic outputs"
+    - "Tracing of prompts, retrieved context and responses for debugging"
+  follow_ups:
+    - "How would you get a quality signal when users rarely give feedback?"
+  difficulty: 3
+
+- id: eval-008
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "How do you prevent regressions when you change prompts or switch models?"
+  key_points:
+    - "Version prompts like code"
+    - "A regression test suite of fixed inputs with expected properties"
+    - "Run evals automatically in CI"
+    - "Compare score distributions, not single examples"
+    - "Gradual rollout with monitoring"
+  follow_ups:
+    - "How would you test outputs that are different every time?"
+  difficulty: 3
+
+- id: eval-009
+  role: [ai-engineer]
+  level: [senior]
+  topic: evaluation
+  type: technical
+  question: "How would you evaluate a speech recognition component in a voice product?"
+  key_points:
+    - "Word error rate on a representative labelled set"
+    - "Break down by accent, noise and domain vocabulary"
+    - "Latency, especially time to final transcript"
+    - "Task-level impact: does the downstream system still understand?"
+    - "Check handling of disfluencies like filler words"
+  follow_ups:
+    - "Why can a lower word error rate fail to improve the product?"
+  difficulty: 4
+
+- id: eval-010
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: evaluation
+  type: technical
+  question: "What is the difference between offline and online evaluation?"
+  key_points:
+    - "Offline uses fixed datasets before deployment"
+    - "Online measures real user behaviour in production"
+    - "Offline is cheap and repeatable but may not reflect real usage"
+    - "Online captures true impact but is slower and riskier"
+    - "Use both: offline to gate, online to confirm"
+  follow_ups:
+    - "Give an example where offline and online results disagreed."
+  difficulty: 2
+
+# ───────────────────────────── MLOps ─────────────────────────────
+- id: mlops-001
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "How would you deploy and serve an ML model in production?"
+  key_points:
+    - "Package the model with its preprocessing and pinned dependencies, for example in a container"
+    - "Choose batch or real-time serving based on the use case"
+    - "An API service with autoscaling, or a serving framework"
+    - "Version models and support rollback"
+    - "Monitor latency, errors and prediction quality"
+  follow_ups:
+    - "How would you roll out a new model version safely?"
+  difficulty: 3
+
+- id: mlops-002
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "What is model drift, and how do you detect and handle it?"
+  key_points:
+    - "Data drift: input distribution changes"
+    - "Concept drift: relationship between inputs and target changes"
+    - "Detect with statistical tests on features and by monitoring performance"
+    - "Labels often arrive late, so use proxy metrics"
+    - "Retrain on schedule or when triggered by drift"
+  follow_ups:
+    - "How would you monitor performance when true labels arrive a month later?"
+  difficulty: 3
+
+- id: mlops-003
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "How do you make ML experiments reproducible?"
+  key_points:
+    - "Version code, data and configuration"
+    - "Track experiments: parameters, metrics and artifacts, for example with MLflow"
+    - "Fix random seeds and pin dependencies"
+    - "Containerise the environment"
+    - "Automate pipelines instead of manual notebook steps"
+  follow_ups:
+    - "How would you version a 500 GB dataset?"
+  difficulty: 2
+
+- id: mlops-004
+  role: [ai-engineer]
+  level: [senior]
+  topic: mlops
+  type: technical
+  question: "How would you serve an open-weight LLM yourself with good throughput?"
+  key_points:
+    - "Use an inference server like vLLM or TGI"
+    - "Continuous batching to keep the GPU busy"
+    - "Paged attention and KV cache management"
+    - "Quantisation to fit on smaller GPUs"
+    - "Autoscale on queue depth; measure time to first token and tokens per second"
+  follow_ups:
+    - "How would you size the GPUs needed for 100 concurrent users?"
+  difficulty: 5
+
+- id: mlops-005
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "What is a feature store, and when do you need one?"
+  key_points:
+    - "Central place to define, compute and serve features"
+    - "Same feature logic for training and serving avoids training-serving skew"
+    - "Point-in-time correct joins prevent leakage"
+    - "Low-latency online store plus an offline store for training"
+    - "Overkill for small teams with few models"
+  follow_ups:
+    - "What is training-serving skew, and how have you seen it happen?"
+  difficulty: 3
+
+- id: mlops-006
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: mlops
+  type: technical
+  question: "What does a CI/CD pipeline for an ML or AI service look like?"
+  key_points:
+    - "Run linting and unit tests on every change"
+    - "Run evaluation tests to catch quality regressions"
+    - "Build and version container images"
+    - "Deploy to staging, then production with gradual rollout"
+    - "Automatic rollback on failing health checks or metrics"
+  follow_ups:
+    - "Which checks would block a merge, and which would only warn?"
+  difficulty: 2
+
+- id: mlops-007
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "How would you reduce the inference cost of a deployed model?"
+  key_points:
+    - "Smaller or distilled models"
+    - "Quantisation and optimised runtimes like ONNX Runtime or TensorRT"
+    - "Batching requests"
+    - "Caching frequent predictions"
+    - "Autoscaling to zero and right-sizing hardware"
+  follow_ups:
+    - "How would you verify that a distilled model is good enough?"
+  difficulty: 3
+
+- id: mlops-008
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: mlops
+  type: technical
+  question: "How do you roll out a new model version without hurting users?"
+  key_points:
+    - "Shadow deployment: run the new model on live traffic without serving results"
+    - "Canary release to a small share of traffic"
+    - "A/B test against the current model on business metrics"
+    - "Fast rollback through model versioning"
+  follow_ups:
+    - "What would you compare during the shadow phase?"
+  difficulty: 3
+
+# ───────────────────────────── System design ─────────────────────────────
+- id: sd-001
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "Design a URL shortener. What are the key components?"
+  key_points:
+    - "Short code generation: hashing or a counter with base62 encoding, handling collisions"
+    - "Storage mapping codes to URLs; a key-value store fits"
+    - "Read-heavy workload: caching and a CDN"
+    - "Redirect with 301 or 302 and the analytics trade-off"
+    - "Scaling, rate limiting and abuse prevention"
+  follow_ups:
+    - "How would you generate unique codes across many servers?"
+  difficulty: 3
+
+- id: sd-002
+  role: [ai-engineer]
+  level: [senior]
+  topic: system-design
+  type: technical
+  question: "Design a customer-support chatbot that answers from company documentation."
+  key_points:
+    - "RAG over documentation with an ingestion pipeline and updates"
+    - "Conversation state and follow-up question handling"
+    - "Escalation to humans when confidence is low"
+    - "Guardrails: stay on topic, don't invent policies, protect against injection"
+    - "Evaluation and monitoring: answer quality, deflection rate, latency and cost"
+  follow_ups:
+    - "How would you decide when to hand off to a human agent?"
+  difficulty: 4
+
+- id: sd-003
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "How would you design a rate limiter for an API?"
+  key_points:
+    - "Algorithms: token bucket, leaky bucket, fixed or sliding window"
+    - "Limit per user, API key or IP"
+    - "Shared state across servers, for example in Redis with atomic operations"
+    - "Return 429 with a Retry-After header"
+    - "Trade-off between precision and performance"
+  follow_ups:
+    - "How would you rate-limit by LLM tokens instead of by request count?"
+  difficulty: 3
+
+- id: sd-004
+  role: [backend]
+  level: [senior]
+  topic: system-design
+  type: technical
+  question: "Design a notification system that sends emails, SMS and push notifications."
+  key_points:
+    - "Producers publish events to a queue; workers per channel"
+    - "User preferences and opt-outs"
+    - "Retries with backoff and dead-letter queues"
+    - "Idempotency to avoid duplicate sends"
+    - "Rate limits, templates and delivery tracking"
+  follow_ups:
+    - "How do you guarantee a user never gets the same notification twice?"
+  difficulty: 4
+
+- id: sd-005
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "How would you design caching for a read-heavy service?"
+  key_points:
+    - "Cache-aside, write-through or write-behind patterns"
+    - "Choose TTLs and invalidation strategy"
+    - "Eviction policies such as LRU"
+    - "Avoid stampedes with locking or request coalescing"
+    - "Monitor hit rate and stale data risk"
+  follow_ups:
+    - "How would you cache LLM responses when prompts are rarely identical?"
+  difficulty: 3
+
+- id: sd-006
+  role: [ai-engineer]
+  level: [senior]
+  topic: system-design
+  type: technical
+  question: "Design a semantic search system for an e-commerce product catalogue."
+  key_points:
+    - "Embed products from title, description and attributes"
+    - "Hybrid search with keyword matching for brands and model numbers"
+    - "Filters on price, category and availability"
+    - "Reranking with business signals like popularity"
+    - "Offline relevance evals and online click metrics"
+  follow_ups:
+    - "How would you keep embeddings up to date as products change?"
+  difficulty: 4
+
+- id: sd-007
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "How would you design a system that processes long-running jobs, like video transcoding or batch LLM calls?"
+  key_points:
+    - "Accept the request and return a job ID immediately"
+    - "Queue jobs and process them with scalable workers"
+    - "Track job status and expose polling, webhooks or server-sent events"
+    - "Retries, timeouts and idempotent processing"
+    - "Store results durably and clean up"
+  follow_ups:
+    - "What happens if a worker crashes halfway through a job?"
+  difficulty: 3
+
+- id: sd-008
+  role: [backend]
+  level: [senior]
+  topic: system-design
+  type: technical
+  question: "Design a chat application like Slack. Focus on real-time message delivery."
+  key_points:
+    - "Persistent connections such as WebSockets"
+    - "Message storage partitioned by channel and time"
+    - "Fan-out through pub/sub across connection servers"
+    - "Ordering, delivery acknowledgements and offline sync"
+    - "Presence and typing indicators as ephemeral data"
+  follow_ups:
+    - "How would you handle a channel with 100,000 members?"
+  difficulty: 5
+
+- id: sd-009
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "How do you make a service highly available?"
+  key_points:
+    - "Remove single points of failure with redundancy across zones"
+    - "Load balancers with health checks"
+    - "Stateless services with state in replicated stores"
+    - "Graceful degradation, timeouts and circuit breakers"
+    - "Monitoring, alerting and tested failover"
+  follow_ups:
+    - "How would your LLM feature degrade if the model provider goes down?"
+  difficulty: 3
+
+- id: sd-010
+  role: [ai-engineer]
+  level: [senior]
+  topic: system-design
+  type: technical
+  question: "Design an LLM gateway that several product teams in a company will share."
+  key_points:
+    - "A single API in front of multiple providers and models"
+    - "Authentication, quotas and per-team cost tracking"
+    - "Fallbacks and retries across providers"
+    - "Caching, logging and tracing"
+    - "Central safety filters and data-governance policies"
+  follow_ups:
+    - "How would you attribute costs to each team fairly?"
+  difficulty: 4
+
+- id: sd-011
+  role: [backend]
+  level: [mid, senior]
+  topic: system-design
+  type: technical
+  question: "How would you design a file upload service that handles very large files?"
+  key_points:
+    - "Direct-to-object-storage uploads with pre-signed URLs"
+    - "Chunked or multipart, resumable uploads"
+    - "Virus scanning and validation asynchronously"
+    - "Metadata stored in a database"
+    - "CDN for downloads and lifecycle rules for storage cost"
+  follow_ups:
+    - "How do you resume an upload that failed at 80 percent?"
+  difficulty: 3
+
+- id: sd-012
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: system-design
+  type: technical
+  question: "What is the difference between horizontal and vertical scaling?"
+  key_points:
+    - "Vertical: a bigger machine with more CPU or memory"
+    - "Horizontal: more machines behind a load balancer"
+    - "Vertical is simpler but has hard limits and a single point of failure"
+    - "Horizontal needs stateless services or distributed state"
+  follow_ups:
+    - "Which parts of a typical web app are hardest to scale horizontally?"
+  difficulty: 1
+
+# ───────────────────────────── Databases ─────────────────────────────
+- id: db-001
+  role: [backend, ai-engineer]
+  level: [junior, mid]
+  topic: databases
+  type: technical
+  question: "What is a database index, and what are its trade-offs?"
+  key_points:
+    - "A data structure, usually a B-tree, that speeds up lookups"
+    - "Avoids full table scans for filtered or sorted queries"
+    - "Slows down writes and uses extra storage"
+    - "Column order matters in composite indexes"
+    - "Use query plans to check that indexes are used"
+  follow_ups:
+    - "Why might the database ignore an index you created?"
+  difficulty: 2
+
+- id: db-002
+  role: [backend]
+  level: [mid, senior]
+  topic: databases
+  type: technical
+  question: "Explain database transaction isolation levels."
+  key_points:
+    - "ACID: isolation controls how concurrent transactions see each other"
+    - "Read uncommitted, read committed, repeatable read and serializable"
+    - "Anomalies: dirty reads, non-repeatable reads, phantom reads"
+    - "Higher isolation means fewer anomalies but more locking or aborts"
+    - "Postgres defaults to read committed and uses MVCC"
+  follow_ups:
+    - "How would you prevent two users from booking the same seat?"
+  difficulty: 4
+
+- id: db-003
+  role: [backend, ai-engineer]
+  level: [junior, mid]
+  topic: databases
+  type: technical
+  question: "When would you choose a SQL database over a NoSQL database, and the other way around?"
+  key_points:
+    - "SQL for structured data, relations, joins and strong consistency"
+    - "NoSQL for flexible schemas, very high scale or specific access patterns"
+    - "Types of NoSQL: document, key-value, wide-column and graph"
+    - "Decide from access patterns and consistency needs"
+    - "Postgres covers many cases, including JSON and vectors"
+  follow_ups:
+    - "Which would you pick for storing chat histories of an AI assistant?"
+  difficulty: 2
+
+- id: db-004
+  role: [backend]
+  level: [mid, senior]
+  topic: databases
+  type: technical
+  question: "How do you find and fix a slow SQL query?"
+  key_points:
+    - "Use EXPLAIN ANALYZE to see the query plan"
+    - "Look for sequential scans, bad join orders and row estimate errors"
+    - "Add or adjust indexes"
+    - "Rewrite the query, avoid N+1 patterns, select only needed columns"
+    - "Update statistics and consider caching or denormalising"
+  follow_ups:
+    - "What is the N+1 query problem in an ORM?"
+  difficulty: 3
+
+- id: db-005
+  role: [backend]
+  level: [senior]
+  topic: databases
+  type: technical
+  question: "What are sharding and replication, and when would you use each?"
+  key_points:
+    - "Replication copies data for read scaling and high availability"
+    - "Sharding splits data across nodes for write and storage scaling"
+    - "Choosing a shard key to avoid hot spots"
+    - "Cross-shard queries and transactions become hard"
+    - "Replication lag causes stale reads"
+  follow_ups:
+    - "How would you shard a multi-tenant SaaS database?"
+  difficulty: 4
+
+- id: db-006
+  role: [backend]
+  level: [junior, mid]
+  topic: databases
+  type: technical
+  question: "What is database normalisation, and when would you denormalise?"
+  key_points:
+    - "Normalisation removes redundancy by splitting data into related tables"
+    - "Prevents update anomalies and keeps data consistent"
+    - "Denormalise for read performance, fewer joins"
+    - "Denormalisation needs a strategy to keep copies in sync"
+  follow_ups:
+    - "Give an example of denormalisation you'd accept in a reporting system."
+  difficulty: 2
+
+- id: db-007
+  role: [backend]
+  level: [mid, senior]
+  topic: databases
+  type: technical
+  question: "How do you run database schema migrations safely on a live system?"
+  key_points:
+    - "Version migrations in code with a tool like Alembic or Flyway"
+    - "Backwards-compatible steps: expand, migrate data, then contract"
+    - "Avoid long locks on big tables; add columns and indexes concurrently"
+    - "Test migrations on production-like data"
+    - "Have a rollback plan"
+  follow_ups:
+    - "How would you rename a column used by a running service without downtime?"
+  difficulty: 4
+
+- id: db-008
+  role: [backend, ai-engineer]
+  level: [mid, senior]
+  topic: databases
+  type: technical
+  question: "What is connection pooling, and why does it matter?"
+  key_points:
+    - "Opening database connections is expensive"
+    - "A pool reuses a fixed set of connections"
+    - "Databases limit the number of connections"
+    - "Pool sizing affects throughput and latency"
+    - "Tools such as PgBouncer for many app instances"
+  follow_ups:
+    - "What happens in a serverless setup where each function opens its own connection?"
+  difficulty: 3
+
+- id: db-009
+  role: [backend]
+  level: [mid, senior]
+  topic: databases
+  type: technical
+  question: "What is the CAP theorem, and how does it guide database choice?"
+  key_points:
+    - "During a network partition you choose consistency or availability"
+    - "Partitions can't be avoided in distributed systems"
+    - "CP systems refuse requests to stay consistent; AP systems serve possibly stale data"
+    - "PACELC adds the latency versus consistency trade-off without partitions"
+  follow_ups:
+    - "Which would you choose for a shopping cart, and why?"
+  difficulty: 3
+
+- id: db-010
+  role: [backend, ai-engineer]
+  level: [junior, mid]
+  topic: databases
+  type: technical
+  question: "What is SQL injection, and how do you prevent it?"
+  key_points:
+    - "User input is concatenated into SQL and changes the query"
+    - "Use parameterised queries or prepared statements"
+    - "ORMs parameterise by default but raw queries can still be vulnerable"
+    - "Least-privilege database accounts limit damage"
+  follow_ups:
+    - "How is prompt injection similar to SQL injection, and how is it different?"
+  difficulty: 1
+
+# ───────────────────────────── API design ─────────────────────────────
+- id: api-001
+  role: [backend, ai-engineer]
+  level: [junior, mid]
+  topic: api-design
+  type: technical
+  question: "What makes a good REST API design?"
+  key_points:
+    - "Resource-oriented URLs with nouns and HTTP verbs"
+    - "Correct status codes and consistent error format"
+    - "Pagination, filtering and sorting for collections"
+    - "Versioning strategy"
+    - "Clear documentation, for example with OpenAPI"
+  follow_ups:
+    - "How would you paginate a collection that changes constantly?"
+  difficulty: 2
+
+- id: api-002
+  role: [backend]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "What is idempotency in APIs, and how do you implement it for a payment endpoint?"
+  key_points:
+    - "Repeating a request has the same effect as doing it once"
+    - "GET, PUT and DELETE should be idempotent; POST usually isn't"
+    - "Idempotency keys sent by the client"
+    - "Store the key with the result and return the stored result on retries"
+    - "Handle concurrent duplicates with locking or unique constraints"
+  follow_ups:
+    - "How long would you keep idempotency keys?"
+  difficulty: 4
+
+- id: api-003
+  role: [backend]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "Compare REST, GraphQL and gRPC. When would you use each?"
+  key_points:
+    - "REST is simple, cacheable and widely supported"
+    - "GraphQL lets clients request exactly the fields they need, good for varied frontends"
+    - "gRPC uses Protobuf over HTTP/2: fast, typed and good for service-to-service traffic"
+    - "Trade-offs in caching, tooling, browser support and complexity"
+  follow_ups:
+    - "What problems does GraphQL create on the server side?"
+  difficulty: 3
+
+- id: api-004
+  role: [backend, ai-engineer]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "How do you secure an API?"
+  key_points:
+    - "Authentication with OAuth2 or tokens like JWT"
+    - "Authorisation checks on every resource"
+    - "HTTPS everywhere"
+    - "Input validation and rate limiting"
+    - "Secrets management and audit logging"
+  follow_ups:
+    - "What are the risks of storing JWTs in browser local storage?"
+  difficulty: 3
+
+- id: api-005
+  role: [backend, ai-engineer]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "How would you stream LLM responses from your backend to a web client?"
+  key_points:
+    - "Server-sent events or WebSockets"
+    - "Forward tokens as they arrive from the provider"
+    - "Handle client disconnects and cancel upstream requests"
+    - "Proxies and load balancers must not buffer the stream"
+    - "Send structured events for metadata and errors"
+  follow_ups:
+    - "When would you choose WebSockets over server-sent events?"
+  difficulty: 3
+
+- id: api-006
+  role: [backend]
+  level: [junior, mid]
+  topic: api-design
+  type: technical
+  question: "What are the differences between authentication and authorisation?"
+  key_points:
+    - "Authentication verifies who you are"
+    - "Authorisation decides what you are allowed to do"
+    - "Authentication methods: passwords, tokens, SSO"
+    - "Authorisation models: roles, attributes, resource ownership"
+  follow_ups:
+    - "How would you model permissions for a multi-tenant app?"
+  difficulty: 1
+
+- id: api-007
+  role: [backend]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "How do you version an API and deprecate old versions?"
+  key_points:
+    - "Versioning in the URL, header or media type"
+    - "Prefer additive, backwards-compatible changes"
+    - "Announce deprecation with timelines and headers"
+    - "Monitor usage of old versions before removing"
+  follow_ups:
+    - "How would you handle a big client who refuses to migrate?"
+  difficulty: 2
+
+- id: api-008
+  role: [backend, ai-engineer]
+  level: [mid, senior]
+  topic: api-design
+  type: technical
+  question: "How do you handle retries and timeouts when calling external services?"
+  key_points:
+    - "Always set timeouts"
+    - "Retry only transient errors, with exponential backoff and jitter"
+    - "Retries require idempotent operations"
+    - "Circuit breakers stop hammering a failing service"
+    - "Fallbacks or graceful degradation"
+  follow_ups:
+    - "Why is jitter important when many clients retry at once?"
+  difficulty: 3
+
+# ───────────────────────────── Distributed systems & concurrency ─────────────────────────────
+- id: dist-001
+  role: [backend]
+  level: [mid, senior]
+  topic: distributed-systems
+  type: technical
+  question: "Why use a message queue between services?"
+  key_points:
+    - "Decouples producers and consumers"
+    - "Absorbs traffic spikes with buffering"
+    - "Enables retries and asynchronous processing"
+    - "Delivery semantics: at-most-once, at-least-once, effectively-once"
+    - "Consumers must be idempotent with at-least-once delivery"
+  follow_ups:
+    - "How would you handle a message that keeps failing?"
+  difficulty: 3
+
+- id: dist-002
+  role: [backend]
+  level: [senior]
+  topic: distributed-systems
+  type: technical
+  question: "How do you keep data consistent across microservices without distributed transactions?"
+  key_points:
+    - "Saga pattern with compensating actions"
+    - "Outbox pattern to publish events reliably with local transactions"
+    - "Eventual consistency and idempotent consumers"
+    - "Avoid splitting data that needs strong consistency"
+  follow_ups:
+    - "Walk me through what happens when step three of a five-step saga fails."
+  difficulty: 5
+
+- id: dist-003
+  role: [backend]
+  level: [mid, senior]
+  topic: distributed-systems
+  type: technical
+  question: "What is a race condition? Give an example and explain how you'd fix it."
+  key_points:
+    - "Outcome depends on the timing of concurrent operations"
+    - "Example: two requests read a balance and both write an update"
+    - "Fix with locks, atomic operations or transactions"
+    - "Optimistic concurrency with version numbers"
+    - "Database constraints as a safety net"
+  follow_ups:
+    - "When would you prefer optimistic locking over pessimistic locking?"
+  difficulty: 3
+
+- id: dist-004
+  role: [backend, ai-engineer]
+  level: [mid, senior]
+  topic: distributed-systems
+  type: technical
+  question: "How do you approach observability in a distributed system?"
+  key_points:
+    - "Structured logs with correlation IDs"
+    - "Metrics for latency, traffic, errors and saturation"
+    - "Distributed tracing across services, for example with OpenTelemetry"
+    - "Alerts on symptoms tied to service-level objectives"
+    - "Dashboards for debugging"
+  follow_ups:
+    - "How would you trace a single slow request across five services?"
+  difficulty: 3
+
+- id: dist-005
+  role: [backend]
+  level: [senior]
+  topic: distributed-systems
+  type: technical
+  question: "Explain the difference between microservices and a monolith. When would you choose each?"
+  key_points:
+    - "A monolith is simpler to build, test and deploy early on"
+    - "Microservices give independent deployment and scaling"
+    - "Microservices cost: network calls, distributed data, operational overhead"
+    - "Team structure and domain boundaries guide the split"
+    - "A modular monolith as a middle ground"
+  follow_ups:
+    - "How would you split a monolith into services step by step?"
+  difficulty: 3
+
+- id: dist-006
+  role: [backend]
+  level: [mid, senior]
+  topic: distributed-systems
+  type: technical
+  question: "What is a deadlock, and how do you prevent it?"
+  key_points:
+    - "Two or more processes each wait for a resource the other holds"
+    - "Conditions: mutual exclusion, hold and wait, no preemption, circular wait"
+    - "Prevent by acquiring locks in a consistent order"
+    - "Use timeouts and retries"
+    - "Databases detect deadlocks and abort one transaction"
+  follow_ups:
+    - "How would you debug a deadlock in production?"
+  difficulty: 3
+
+- id: dist-007
+  role: [backend]
+  level: [senior]
+  topic: distributed-systems
+  type: technical
+  question: "How does consensus work in distributed systems, for example with Raft?"
+  key_points:
+    - "Nodes agree on a replicated log despite failures"
+    - "Leader election with terms and majority votes"
+    - "The leader replicates entries; committed once a majority acknowledges"
+    - "Tolerates the failure of a minority of nodes"
+    - "Used in etcd, Consul and many databases"
+  follow_ups:
+    - "Why do clusters usually have an odd number of nodes?"
+  difficulty: 5
+
+- id: dist-008
+  role: [backend, ai-engineer]
+  level: [junior, mid]
+  topic: distributed-systems
+  type: technical
+  question: "What does a load balancer do, and what algorithms can it use?"
+  key_points:
+    - "Distributes traffic across multiple servers"
+    - "Algorithms: round robin, least connections, hashing"
+    - "Health checks remove unhealthy servers"
+    - "Layer 4 versus layer 7 load balancing"
+    - "Sticky sessions and their downsides"
+  follow_ups:
+    - "Why can round robin be a bad choice for LLM inference servers?"
+  difficulty: 2
+
+# ───────────────────────────── Behavioral (STAR) ─────────────────────────────
+- id: beh-001
+  role: [ai-engineer, backend]
+  level: [junior, mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a project you're proud of. What was your role and what was the impact?"
+  key_points:
+    - "Situation: clear context and why the project mattered"
+    - "Task: the candidate's specific responsibility"
+    - "Action: concrete technical and personal actions, using I rather than we"
+    - "Result: measurable outcome or impact"
+    - "Reflection: what they learned or would do differently"
+  follow_ups:
+    - "What was the hardest technical decision in that project?"
+  difficulty: 2
+
+- id: beh-002
+  role: [ai-engineer, backend]
+  level: [junior, mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you disagreed with a teammate on a technical decision. How did you handle it?"
+  key_points:
+    - "Situation: the disagreement and what was at stake"
+    - "Listened to and understood the other view"
+    - "Used data, experiments or prototypes to decide"
+    - "Result: the decision and the relationship afterwards"
+    - "Shows they can disagree and commit"
+  follow_ups:
+    - "Looking back, was the final decision the right one?"
+  difficulty: 2
+
+- id: beh-003
+  role: [ai-engineer, backend]
+  level: [junior, mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Describe a time something you built failed in production. What happened?"
+  key_points:
+    - "Situation: what failed and the impact on users"
+    - "Action: how they detected, mitigated and communicated"
+    - "Root cause analysis"
+    - "Result: prevention measures put in place afterwards"
+    - "Ownership without blaming others"
+  follow_ups:
+    - "What would have caught the problem earlier?"
+  difficulty: 2
+
+- id: beh-004
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you had to learn a new technology quickly to deliver something."
+  key_points:
+    - "Situation: why the new technology was needed and the time pressure"
+    - "Learning strategy: docs, small prototypes, asking experts"
+    - "Action: how they applied it while managing risk"
+    - "Result: what was delivered and how well"
+  follow_ups:
+    - "How do you decide when you know a tool well enough to use it in production?"
+  difficulty: 2
+
+- id: beh-005
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Describe a time you had to make a decision with incomplete information."
+  key_points:
+    - "Situation and why waiting for more information was costly"
+    - "How they reduced uncertainty and assessed risks"
+    - "Made the decision reversible or set checkpoints"
+    - "Result and how they validated the decision afterwards"
+  follow_ups:
+    - "What signal would have made you change course?"
+  difficulty: 3
+
+- id: beh-006
+  role: [ai-engineer, backend]
+  level: [senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you mentored someone or helped a teammate grow."
+  key_points:
+    - "Situation: who they helped and the starting gap"
+    - "Concrete actions: pairing, reviews, giving ownership"
+    - "Adapted their approach to the person"
+    - "Result: measurable growth or outcome"
+  follow_ups:
+    - "How do you give critical feedback to someone more junior?"
+  difficulty: 3
+
+- id: beh-007
+  role: [ai-engineer, backend]
+  level: [junior, mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you had to explain a complex technical topic to a non-technical person."
+  key_points:
+    - "Situation: who the audience was and why they needed to understand"
+    - "Adapted language, used analogies or visuals"
+    - "Checked understanding and invited questions"
+    - "Result: a decision or outcome that followed"
+  follow_ups:
+    - "How would you explain what an embedding is to a product manager?"
+  difficulty: 2
+
+- id: beh-008
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Describe a time you had to balance shipping fast with doing it right."
+  key_points:
+    - "Situation: the deadline pressure and the quality risk"
+    - "Identified what could be cut and what couldn't, like security or data integrity"
+    - "Communicated trade-offs to stakeholders"
+    - "Result and how they paid down technical debt later"
+  follow_ups:
+    - "How do you make sure shortcuts actually get cleaned up?"
+  difficulty: 3
+
+- id: beh-009
+  role: [ai-engineer, backend]
+  level: [junior, mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Why are you interested in this role, and what are you looking for in your next team?"
+  key_points:
+    - "Specific interest in the role or domain, not generic"
+    - "Connects past experience to the role"
+    - "Clear about what kind of work and team they thrive in"
+    - "Shows motivation to learn and contribute"
+  follow_ups:
+    - "What would make you leave a job after six months?"
+  difficulty: 1
+
+- id: beh-010
+  role: [ai-engineer, backend]
+  level: [mid, senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you improved a process or tool that your team used."
+  key_points:
+    - "Situation: the pain point and its cost"
+    - "Action: what they changed and how they got buy-in"
+    - "Result: measured improvement like time saved or fewer errors"
+    - "Initiative beyond assigned work"
+  follow_ups:
+    - "How did you convince people who were happy with the old way?"
+  difficulty: 2
+
+- id: beh-011
+  role: [ai-engineer, backend]
+  level: [junior, mid]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you made a mistake at work. How did you handle it?"
+  key_points:
+    - "Situation: a real mistake, honestly described"
+    - "Took ownership and told the right people quickly"
+    - "Action to fix the impact"
+    - "Result: what changed to prevent it happening again"
+  follow_ups:
+    - "What did you learn about yourself from that?"
+  difficulty: 2
+
+- id: beh-012
+  role: [ai-engineer, backend]
+  level: [senior]
+  topic: behavioral
+  type: behavioral
+  question: "Tell me about a time you influenced a technical direction without having formal authority."
+  key_points:
+    - "Situation: the direction they wanted to change and why"
+    - "Built a case with data, prototypes or written proposals"
+    - "Brought stakeholders along and handled objections"
+    - "Result: the decision taken and its impact"
+  follow_ups:
+    - "What would you have done if the team had said no?"
+  difficulty: 4
+
+# ───────────────────────────── Extra AI depth ─────────────────────────────
+- id: ai-001
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: llm
+  type: technical
+  question: "How would you build a classifier using an LLM, and when would you train a small model instead?"
+  key_points:
+    - "Zero-shot or few-shot prompting with clear labels for a quick start"
+    - "Constrain output to the label set and validate"
+    - "Measure accuracy on a labelled test set"
+    - "Use LLM labels to train a small, cheap model when volume is high"
+    - "Trade-offs in cost, latency, accuracy and maintenance"
+  follow_ups:
+    - "How would you handle a new class appearing after launch?"
+  difficulty: 3
+
+- id: ai-002
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: evaluation
+  type: technical
+  question: "How do you handle PII and sensitive data when building LLM applications?"
+  key_points:
+    - "Minimise data sent to the model"
+    - "Detect and redact or mask PII before calls and in logs"
+    - "Check provider data-retention and training policies"
+    - "Access controls and encryption for stored conversations"
+    - "Compliance requirements like GDPR, including deletion"
+  follow_ups:
+    - "How would you let users delete their data from an AI assistant?"
+  difficulty: 3
+
+- id: ai-003
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: rag
+  type: technical
+  question: "What is cosine similarity, and why is it used for comparing embeddings?"
+  key_points:
+    - "Measures the angle between vectors, ignoring their length"
+    - "Ranges from minus one to one; higher means more similar"
+    - "Equivalent to dot product on normalised vectors"
+    - "Works well because embedding direction encodes meaning"
+  follow_ups:
+    - "When would dot product and cosine similarity give different rankings?"
+  difficulty: 1
+
+- id: ai-004
+  role: [ai-engineer]
+  level: [senior]
+  topic: agents
+  type: technical
+  question: "How would you design a conversation state machine for a structured voice or chat assistant?"
+  key_points:
+    - "Explicit states, each with its own prompt and allowed tools"
+    - "Transitions triggered by tool calls or conditions"
+    - "Global functions available in every state, like ending the conversation"
+    - "Context strategy across transitions: keep, summarise or reset"
+    - "Easier to test and debug than one giant prompt"
+  follow_ups:
+    - "How do you handle a user who jumps ahead to a later state?"
+  difficulty: 4
+
+- id: ai-005
+  role: [ai-engineer]
+  level: [mid, senior]
+  topic: ml-basics
+  type: technical
+  question: "How would you approach fine-tuning an embedding model for your domain?"
+  key_points:
+    - "Collect query and positive document pairs, for example from logs or synthetic generation"
+    - "Mine hard negatives"
+    - "Contrastive loss such as multiple negatives ranking loss"
+    - "Evaluate retrieval metrics before and after on a held-out set"
+    - "Re-embed the whole corpus after updating the model"
+  follow_ups:
+    - "How would you generate training pairs if you had no query logs?"
+  difficulty: 4
+
+- id: ai-006
+  role: [ai-engineer]
+  level: [junior, mid]
+  topic: llm
+  type: technical
+  question: "What is a system prompt, and how do you write a good one?"
+  key_points:
+    - "Instructions that set the model's role, behaviour and constraints"
+    - "Be specific about the task, format and tone"
+    - "Give examples of desired output"
+    - "State what to do in edge cases, like missing information"
+    - "Iterate with evaluations rather than guesswork"
+  follow_ups:
+    - "How would you test whether a change to the system prompt made things better?"
+  difficulty: 1

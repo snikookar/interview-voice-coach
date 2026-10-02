@@ -1,0 +1,13 @@
+Senior AI Engineer - Search & Assistants
+
+We are building an AI assistant over our internal knowledge base.
+
+Responsibilities:
+- Design and improve retrieval-augmented generation pipelines (chunking, hybrid search, reranking)
+- Build evaluation datasets and LLM-as-judge pipelines to measure answer faithfulness
+- Ship agentic workflows with tool calling and guardrails
+
+Requirements:
+- Strong Python, asyncio, FastAPI
+- Experience with vector databases (pgvector, Qdrant) and embeddings
+- Experience deploying LLMs: latency and cost optimisation, observability with OpenTelemetry
