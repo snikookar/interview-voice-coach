@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # STT
     stt_provider: Literal["local", "cloud"] = "local"
-    whisper_model: str = "Systran/faster-distil-whisper-small.en"
+    whisper_model: str = "base.en"
     whisper_device: str = "auto"
     whisper_compute_type: str = "int8"
     analysis_whisper_model: str = "small.en"
