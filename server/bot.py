@@ -11,13 +11,16 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
     LLMUserAggregatorParams,
 )
+from pipecat.processors.frameworks.rtvi.frames import RTVIServerMessageFrame
 from pipecat.transports.base_transport import TransportParams
 from pipecat.transports.smallwebrtc.connection import SmallWebRTCConnection
 from pipecat.transports.smallwebrtc.transport import SmallWebRTCTransport
 from pipecat.workers.runner import WorkerRunner
 
 from config import get_settings
+from metrics_observer import BargeInObserver, LatencyRecorder, TurnLatency
 from services import create_llm, create_stt, create_tts
+from tracing import setup_tracing
 
 INTERVIEWER_PROMPT = (
     "You are Alex, a friendly but rigorous technical interviewer. This is a spoken "
@@ -62,9 +65,22 @@ async def run_bot(connection: SmallWebRTCConnection) -> None:
         ]
     )
 
+    async def on_turn_latency(turn: TurnLatency):
+        # Live latency readout in the browser.
+        await worker.queue_frame(
+            RTVIServerMessageFrame(
+                data={"type": "latency", "total_ms": turn.total_ms, **turn.stages_ms}
+            )
+        )
+
+    latency = LatencyRecorder(on_turn=on_turn_latency)
+    barge_in = BargeInObserver()
+
     worker = PipelineWorker(
         pipeline,
         params=PipelineParams(enable_metrics=True, enable_usage_metrics=True),
+        observers=[latency.observer, barge_in],
+        enable_tracing=setup_tracing(),
         processor_unusable_policy=ProcessorUnusablePolicy.END,
     )
     runner = WorkerRunner(handle_sigint=False)
