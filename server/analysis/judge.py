@@ -148,6 +148,7 @@ class Judge:
         self.model = model or s.effective_judge_model
         self.client = client or AsyncOpenAI(api_key=s.llm_api_key, base_url=s.llm_base_url)
         self._json_mode = True
+        self.usage = {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0}
 
     async def _complete(self, messages: list[dict]) -> str:
         kwargs = {"model": self.model, "messages": messages, "temperature": 0}
@@ -161,6 +162,11 @@ class Judge:
             logger.info("Judge endpoint rejected JSON mode; falling back to plain text")
             self._json_mode = False
             return await self._complete(messages)
+        usage = getattr(resp, "usage", None)  # optional in the API, absent on some endpoints
+        if usage:
+            self.usage["calls"] += 1
+            self.usage["prompt_tokens"] += usage.prompt_tokens
+            self.usage["completion_tokens"] += usage.completion_tokens
         return resp.choices[0].message.content or ""
 
     async def score(

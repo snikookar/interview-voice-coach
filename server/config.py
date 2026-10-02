@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # turn. Interview answers pause up to ~0.7 s between sentences (measured), so the
     # usual chatbot value of 0.2 s cuts candidates off mid-answer.
     turn_stop_secs: float = 0.8
+    # When Smart Turn judges the answer unfinished, wait at most this long in silence.
+    # In the 100-turn benchmark, 11% of turns hit this 3 s fallback (the p95 tail).
+    turn_max_wait_secs: float = 3.0
 
     # WebRTC
     ice_servers: str = "stun:stun.l.google.com:19302"

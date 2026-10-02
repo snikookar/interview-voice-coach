@@ -232,7 +232,9 @@ class SessionRecorder(BaseObserver):
         """Drop empty user turns (noise that never produced a transcript)."""
         return [t for t in self.turns if t.text.strip()]
 
-    async def save(self, latency: list[dict], barge_in_ms: list[float]) -> None:
+    async def save(
+        self, latency: list[dict], barge_in_ms: list[float], usage: dict | None = None
+    ) -> None:
         try:
             has_audio = await asyncio.to_thread(self.write_audio)
         except Exception as e:  # a failed recording must not lose the transcript
@@ -257,6 +259,7 @@ class SessionRecorder(BaseObserver):
                 },
                 "end_reason": self.state.end_reason or "disconnected",
                 "questions_asked": self.state.index + 1,
+                "usage": usage or {},
             }
             for i, t in enumerate(turns):
                 db.add(

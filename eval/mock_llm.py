@@ -134,6 +134,27 @@ def _chunk(cid: str, delta: dict, finish: str | None = None) -> str:
 @app.post("/v1/chat/completions")
 async def completions(request: Request):
     body = await request.json()
+    if not body.get("stream") and body.get("tools"):  # eval/follow_up_relevance.py
+        await asyncio.sleep(TTFT_SECS)
+        tool, args, text = decide(body["messages"], body["tools"])
+        message = {"role": "assistant", "content": text or None}
+        if tool:
+            message["tool_calls"] = [
+                {
+                    "id": f"call_{uuid.uuid4().hex[:8]}",
+                    "type": "function",
+                    "function": {"name": tool, "arguments": json.dumps(args)},
+                }
+            ]
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": "mock",
+            "choices": [
+                {"index": 0, "message": message, "finish_reason": "tool_calls" if tool else "stop"}
+            ],
+        }
     if not body.get("stream"):  # the post-session judge
         await asyncio.sleep(TTFT_SECS)
         content = judge_reply(body["messages"])

@@ -4,6 +4,7 @@ import time
 from collections.abc import Awaitable, Callable
 
 from loguru import logger
+from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
@@ -28,7 +29,7 @@ from db import SessionRow, session_scope
 from flows import tools
 from flows.interview_flow import create_intro_node
 from flows.state import InterviewState
-from metrics_observer import BargeInObserver, LatencyRecorder, TurnLatency
+from metrics_observer import BargeInObserver, LatencyRecorder, TurnLatency, UsageRecorder
 from services import create_llm, create_stt, create_tts
 from session_recorder import SessionRecorder, mark_started
 from tracing import setup_tracing
@@ -69,7 +70,10 @@ async def run_bot(
                 start=[VADUserTurnStartStrategy()],
                 stop=[
                     MinSilenceTurnStopStrategy(
-                        turn_analyzer=LocalSmartTurnAnalyzerV3(),
+                        turn_analyzer=LocalSmartTurnAnalyzerV3(
+                            # Max silence to wait when Smart Turn says "not finished".
+                            params=SmartTurnParams(stop_secs=settings.turn_max_wait_secs)
+                        ),
                         min_silence_secs=settings.turn_stop_secs,
                     )
                 ],
@@ -103,11 +107,12 @@ async def run_bot(
 
     latency = LatencyRecorder(on_turn=on_turn_latency)
     barge_in = BargeInObserver()
+    usage = UsageRecorder()
 
     worker = PipelineWorker(
         pipeline,
         params=PipelineParams(enable_metrics=True, enable_usage_metrics=True),
-        observers=[latency, barge_in, recorder],
+        observers=[latency, barge_in, usage, recorder],
         enable_tracing=setup_tracing(),
         conversation_id=state.session_id,
         processor_unusable_policy=ProcessorUnusablePolicy.END,
@@ -161,6 +166,6 @@ async def run_bot(
     try:
         await runner.run()
     finally:
-        await recorder.save(latency.as_dicts(), barge_in.stop_times_ms)
+        await recorder.save(latency.as_dicts(), barge_in.stop_times_ms, usage.as_dict())
         if on_session_end:
             await on_session_end(state.session_id)

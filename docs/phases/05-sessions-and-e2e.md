@@ -49,6 +49,8 @@ Final per-stage breakdown (server side, typical turn):
 | output | ~3 | |
 | **total** | **~1 600** | the client measures the same ±50 ms |
 
+These are typical single runs. The 100-turn benchmark in [Phase 8](08-evaluation.md) is the authoritative number: **p50 1.81 s, p95 3.72 s**. The tail comes from Smart Turn's 3 s "unfinished" fallback on 11 % of turns.
+
 Barge-in: the server stops the bot 0–30 ms after detecting the interruption. The client hears silence about 690 ms after it starts talking: 200 ms of VAD `start_secs`, plus WebRTC and aiortc audio buffering. Both are reported. Lowering `start_secs` trades faster barge-in for more false interruptions (coughs, "mm-hm").
 
 ## Technology choices

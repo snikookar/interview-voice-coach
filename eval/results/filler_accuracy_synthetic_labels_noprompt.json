@@ -1,0 +1,157 @@
+{
+  "labels": "synthetic_labels.csv",
+  "model": "small.en",
+  "priming_prompt": false,
+  "clips": 20,
+  "per_filler": {
+    "um": {
+      "true": 8,
+      "detected": 8,
+      "matched": 8,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "uh": {
+      "true": 8,
+      "detected": 6,
+      "matched": 6,
+      "precision": 1.0,
+      "recall": 0.75
+    },
+    "like": {
+      "true": 3,
+      "detected": 3,
+      "matched": 3,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "you know": {
+      "true": 4,
+      "detected": 4,
+      "matched": 4,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "basically": {
+      "true": 4,
+      "detected": 4,
+      "matched": 4,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "overall": {
+    "true": 27,
+    "detected": 25,
+    "matched": 25,
+    "precision": 1.0,
+    "recall": 0.926
+  },
+  "clips_detail": [
+    {
+      "file": "synthetic_01.wav",
+      "transcript": "Um, so I would start with a baseline model.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_02.wav",
+      "transcript": "I think, uh, the main issue was latency.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_03.wav",
+      "transcript": "We used, like, a really simple cache.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_04.wav",
+      "transcript": "It's basically a key value store, you know, with a TTL.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_05.wav",
+      "transcript": "Um, uh, let me think about that for a second.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_06.wav",
+      "transcript": "I'd measure recall at K and metrics like MRR.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_07.wav",
+      "transcript": "So um we split the data by time and um trained on the past",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_08.wav",
+      "transcript": "The service was like, really slow, uh, under load.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_09.wav",
+      "transcript": "Basically, you know, it depends on the traffic.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_10.wav",
+      "transcript": "I would add tracing and look at the slowest spans.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_11.wav",
+      "transcript": "Uh, I'm not sure, but I think it's eventual consistency.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_12.wav",
+      "transcript": "Um, so, basically, we cashed the embeddings.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_13.wav",
+      "transcript": "We had a three replicas and a one primary.",
+      "errors": {
+        "uh": {
+          "true": 2,
+          "detected": 0
+        }
+      }
+    },
+    {
+      "file": "synthetic_14.wav",
+      "transcript": "It was, like, you know, a classic race condition.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_15.wav",
+      "transcript": "Things like retries and timeouts matter a lot.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_16.wav",
+      "transcript": "Um, I'd use a Q and, uh, idempotent consumers.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_17.wav",
+      "transcript": "You know, the hardest part was the data quality.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_18.wav",
+      "transcript": "So basically, um, we rolled it out with a canary.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_19.wav",
+      "transcript": "I'd start with bm25 and add vector search later.",
+      "errors": {}
+    },
+    {
+      "file": "synthetic_20.wav",
+      "transcript": "Uh, um, sorry, could you repeat the question?",
+      "errors": {}
+    }
+  ]
+}

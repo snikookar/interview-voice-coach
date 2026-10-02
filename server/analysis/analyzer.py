@@ -201,6 +201,7 @@ async def _build_report(row: SessionRow, turns: list[TurnRow], judge: Judge) -> 
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "judge_model": judge.model,
+        "judge_usage": judge.usage,
         "overall": overall,
         "answers": answer_reports,
         "speech": overall_speech,

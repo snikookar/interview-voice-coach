@@ -36,12 +36,14 @@ from pipecat.frames.frames import (
     FunctionCallInProgressFrame,
     InterruptionFrame,
     LLMTextFrame,
+    MetricsFrame,
     TranscriptionFrame,
     TTSAudioRawFrame,
     UserStoppedSpeakingFrame,
     VADUserStartedSpeakingFrame,
     VADUserStoppedSpeakingFrame,
 )
+from pipecat.metrics.metrics import LLMUsageMetricsData, STTUsageMetricsData, TTSUsageMetricsData
 from pipecat.observers.base_observer import BaseObserver, FramePushed
 from pipecat.processors.frame_processor import FrameDirection
 
@@ -163,3 +165,40 @@ class BargeInObserver(BaseObserver):
                 self.stop_times_ms.append(round(ms, 1))
                 logger.info(f"barge-in: bot stopped {ms:.0f} ms after interruption")
                 self._interrupted_at = None
+
+
+class UsageRecorder(BaseObserver):
+    """Totals the usage Pipecat reports per service, for cost-per-session numbers."""
+
+    def __init__(self):
+        super().__init__()
+        self.llm_calls = 0
+        self.prompt_tokens = 0
+        self.completion_tokens = 0
+        self.cached_prompt_tokens = 0
+        self.stt_audio_secs = 0.0
+        self.tts_characters = 0
+
+    async def on_push_frame(self, data: FramePushed) -> None:
+        if not data.first_push or not isinstance(data.frame, MetricsFrame):
+            return
+        for m in data.frame.data:
+            if isinstance(m, LLMUsageMetricsData):
+                self.llm_calls += 1
+                self.prompt_tokens += m.value.prompt_tokens
+                self.completion_tokens += m.value.completion_tokens
+                self.cached_prompt_tokens += m.value.cache_read_input_tokens or 0
+            elif isinstance(m, STTUsageMetricsData):
+                self.stt_audio_secs += m.value.audio_seconds
+            elif isinstance(m, TTSUsageMetricsData):
+                self.tts_characters += m.value
+
+    def as_dict(self) -> dict:
+        return {
+            "llm_calls": self.llm_calls,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "cached_prompt_tokens": self.cached_prompt_tokens,
+            "stt_audio_secs": round(self.stt_audio_secs, 1),
+            "tts_characters": self.tts_characters,
+        }

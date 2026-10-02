@@ -1,0 +1,24 @@
+# Unit prices used by eval/cost.py, in USD.
+#
+# These are EXAMPLE values for the cost model: provider prices change often, so check
+# each provider's pricing page and edit before quoting numbers. The measured usage
+# (tokens, audio seconds, characters) comes from real sessions; only these unit
+# prices are assumptions.
+as_of: "edit me: date you checked the prices"
+
+llm:
+  # per 1M tokens
+  input_per_m: 0.27
+  cached_input_per_m: 0.07
+  output_per_m: 1.10
+
+stt_cloud:
+  # Deepgram streaming, per audio minute
+  per_minute: 0.0077
+
+tts_cloud:
+  # Deepgram Aura, per 1k characters
+  per_1k_chars: 0.030
+
+# Local STT/TTS run on your own hardware: no per-use fee.
+local_hardware_per_hour: 0.0

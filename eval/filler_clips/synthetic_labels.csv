@@ -1,0 +1,21 @@
+file,text,um,uh,like,you know,basically
+synthetic_01.wav,"Um, so I would start with a baseline model.",1,0,0,0,0
+synthetic_02.wav,"I think, uh, the main issue was latency.",0,1,0,0,0
+synthetic_03.wav,"We used, like, a really simple cache.",0,0,1,0,0
+synthetic_04.wav,"It's basically a key value store, you know, with a TTL.",0,0,0,1,1
+synthetic_05.wav,"Um, uh, let me think about that for a second.",1,1,0,0,0
+synthetic_06.wav,I'd measure recall at k and metrics like MRR.,0,0,0,0,0
+synthetic_07.wav,"So, um, we split the data by time, and, um, trained on the past.",2,0,0,0,0
+synthetic_08.wav,"The service was, like, really slow, uh, under load.",0,1,1,0,0
+synthetic_09.wav,"Basically, you know, it depends on the traffic.",0,0,0,1,1
+synthetic_10.wav,I would add tracing and look at the slowest spans.,0,0,0,0,0
+synthetic_11.wav,"Uh, I'm not sure, but I think it's eventual consistency.",0,1,0,0,0
+synthetic_12.wav,"Um, so, basically we cached the embeddings.",1,0,0,0,1
+synthetic_13.wav,"We had, uh, three replicas and, uh, one primary.",0,2,0,0,0
+synthetic_14.wav,"It was, like, you know, a classic race condition.",0,0,1,1,0
+synthetic_15.wav,Things like retries and timeouts matter a lot.,0,0,0,0,0
+synthetic_16.wav,"Um, I'd use a queue, and, uh, idempotent consumers.",1,1,0,0,0
+synthetic_17.wav,"You know, the hardest part was the data quality.",0,0,0,1,0
+synthetic_18.wav,"So basically, um, we rolled it out with a canary.",1,0,0,0,1
+synthetic_19.wav,I'd start with BM25 and add vector search later.,0,0,0,0,0
+synthetic_20.wav,"Uh, um, sorry, could you repeat the question?",1,1,0,0,0
