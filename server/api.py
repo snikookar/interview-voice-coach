@@ -1,5 +1,6 @@
 """FastAPI app: WebRTC signalling for the voice bot."""
 
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI
@@ -13,6 +14,9 @@ from pipecat.transports.smallwebrtc.request_handler import (
 
 from bot import run_bot
 from config import get_settings
+from db import close_db, init_db
+from flows.state import InterviewState
+from question_bank.retriever import build_plan, sync_bank
 
 settings = get_settings()
 
@@ -23,8 +27,11 @@ webrtc_handler = SmallWebRTCRequestHandler(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_db()
+    await sync_bank()
     yield
     await webrtc_handler.close()
+    await close_db()
 
 
 app = FastAPI(title="Interview Voice Coach", lifespan=lifespan)
@@ -40,8 +47,19 @@ app.add_middleware(
 async def offer(request: SmallWebRTCRequest, background_tasks: BackgroundTasks):
     """SDP offer/answer exchange. The bot starts once the peer connection exists."""
 
+    data = request.request_data or {}
+    role, level = data.get("role", "ai-engineer"), data.get("level", "mid")
+    plan = await build_plan(role, level, data.get("job_posting"), settings.default_num_questions)
+    state = InterviewState(
+        session_id=str(uuid.uuid4()),
+        role=role,
+        level=level,
+        plan=plan,
+        max_minutes=settings.default_max_minutes,
+    )
+
     async def on_connection(connection: SmallWebRTCConnection):
-        background_tasks.add_task(run_bot, connection)
+        background_tasks.add_task(run_bot, connection, state)
 
     return await webrtc_handler.handle_web_request(
         request=request, webrtc_connection_callback=on_connection
