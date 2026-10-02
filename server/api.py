@@ -1,5 +1,7 @@
 """FastAPI app: WebRTC signalling for the voice bot, sessions, reports and progress."""
 
+import asyncio
+import statistics
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -20,6 +22,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.orm import selectinload
 
+from analysis.analyzer import analyze_session
 from bot import run_bot
 from config import get_settings
 from db import SessionRow, close_db, init_db, session_scope
@@ -33,8 +36,19 @@ webrtc_handler = SmallWebRTCRequestHandler(
     ice_servers=[IceServer(urls=url) for url in settings.ice_server_urls] or None
 )
 
-# Hook run after a call ends (the post-session analyzer plugs in here).
-on_session_end = None
+# Analyses run in the background; keep references so tasks aren't garbage-collected.
+_background: set[asyncio.Task] = set()
+
+
+def _spawn(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+async def on_session_end(session_id: str) -> None:
+    """After a call: score answers and compute speech metrics, without blocking anything."""
+    _spawn(analyze_session(session_id))
 
 
 @asynccontextmanager
@@ -182,6 +196,55 @@ async def get_session_audio(session_id: str):
     if not path.exists():
         raise HTTPException(404, "No recording for this session")
     return FileResponse(path, media_type="audio/wav", filename=f"interview-{session_id[:8]}.wav")
+
+
+@app.post("/api/sessions/{session_id}/analyze")
+async def reanalyze_session(session_id: str):
+    """Re-run the analysis (e.g. after changing the judge model or prompt)."""
+    async with session_scope() as db:
+        row = await db.get(SessionRow, session_id)
+    if row is None:
+        raise HTTPException(404, "Session not found")
+    if row.status in ("created", "live", "analyzing"):
+        raise HTTPException(409, f"Session is {row.status}")
+    _spawn(analyze_session(session_id))
+    return {"status": "analyzing"}
+
+
+@app.get("/api/progress")
+async def progress(role: str | None = None):
+    """Scores and delivery metrics over time, plus per-topic averages."""
+    async with session_scope() as db:
+        stmt = select(SessionRow).where(SessionRow.status == "done")
+        if role:
+            stmt = stmt.where(SessionRow.role == role)
+        rows = list(await db.scalars(stmt.order_by(SessionRow.created_at)))
+
+    points, by_topic = [], {}
+    for r in rows:
+        rep = r.report or {}
+        speech, overall = rep.get("speech", {}), rep.get("overall", {})
+        points.append(
+            {
+                "id": r.id,
+                "created_at": r.created_at,
+                "role": r.role,
+                "level": r.level,
+                "score": r.overall_score,
+                "coverage": overall.get("coverage"),
+                "dimensions": overall.get("dimensions", {}),
+                "wpm": speech.get("wpm"),
+                "fillers_per_min": speech.get("fillers_per_min"),
+                "latency_p50_ms": rep.get("latency", {}).get("p50_ms"),
+            }
+        )
+        for a in rep.get("answers", []):
+            by_topic.setdefault(a["topic"], []).append(a["mean_score"])
+    topics = [
+        {"topic": t, "avg_score": round(statistics.mean(v), 2), "answers": len(v)}
+        for t, v in sorted(by_topic.items())
+    ]
+    return {"sessions": points, "topics": topics}
 
 
 @app.delete("/api/sessions/{session_id}")

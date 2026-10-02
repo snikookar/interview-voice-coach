@@ -11,10 +11,11 @@ from pipecat.frames.frames import (
     UserStartedSpeakingFrame,
     UserStoppedSpeakingFrame,
 )
+from pipecat.processors.frame_processor import FrameDirection
 from pipecat.utils.text.base_text_aggregator import AggregationType
 
 from flows.state import InterviewState
-from session_recorder import SessionRecorder
+from session_recorder import SessionRecorder, TrackRecorder
 
 
 def _recorder() -> SessionRecorder:
@@ -29,8 +30,8 @@ def _recorder() -> SessionRecorder:
     return rec
 
 
-async def _push(rec: SessionRecorder, frame) -> None:
-    await rec.on_push_frame(SimpleNamespace(frame=frame, first_push=True))
+async def _push(rec: SessionRecorder, frame, direction=FrameDirection.DOWNSTREAM) -> None:
+    await rec.on_push_frame(SimpleNamespace(frame=frame, first_push=True, direction=direction))
 
 
 def _tts(text: str) -> TTSTextFrame:
@@ -76,3 +77,27 @@ async def test_empty_user_noise_is_dropped():
     await _push(rec, UserStartedSpeakingFrame())
     await _push(rec, UserStoppedSpeakingFrame())
     assert rec.finished_turns() == []
+
+
+async def test_broadcast_upstream_copies_do_not_duplicate_turns():
+    rec = _recorder()
+    await _push(rec, BotStartedSpeakingFrame())
+    await _push(rec, BotStartedSpeakingFrame(), direction=FrameDirection.UPSTREAM)
+    await _push(rec, _tts("Hi."))
+    await _push(rec, BotStoppedSpeakingFrame())
+    assert [t.text for t in rec.finished_turns()] == ["Hi."]
+
+
+def test_track_recorder_places_audio_on_wall_clock():
+    track = TrackRecorder(object, "t")
+    track.start(t0=100.0)
+    frame = b"\x01\x00" * 160  # 10 ms at 16 kHz
+    track.add(frame, 16000, 1, now=100.01)  # the first 10 ms
+    track.add(frame, 16000, 1, now=101.01)  # a second later: 990 ms of silence inserted
+    samples = track.samples()
+    assert len(samples) == 16160
+    assert samples[:160].tolist() == [1] * 160
+    assert not samples[160:16000].any()
+    # A burst arriving "early" is appended, never overlapped.
+    track.add(frame, 16000, 1, now=101.0)
+    assert len(track.samples()) == 16320

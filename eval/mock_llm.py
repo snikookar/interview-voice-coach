@@ -72,6 +72,54 @@ def decide(messages: list[dict], tools: list[dict]) -> tuple[str | None, dict | 
     return None, None, "Could you tell me a little more?"
 
 
+STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "for",
+    "on",
+    "in",
+    "with",
+    "by",
+    "is",
+    "are",
+    "it",
+}
+
+
+def judge_reply(messages: list[dict]) -> str:
+    """Heuristic stand-in for the LLM judge: a key point counts as covered when
+    most of its content words appear in the answer."""
+    prompt = messages[-1]["content"]
+    rubric = prompt.split("Rubric key points:")[1].split("Candidate answer")[0]
+    points = [ln.strip("- ").strip() for ln in rubric.strip().splitlines() if ln.strip()]
+    answer = prompt.split("Candidate answer (transcript):")[1].lower()
+    covered = []
+    for p in points:
+        words = [
+            w for w in p.lower().replace(",", " ").split() if w not in STOPWORDS and len(w) > 2
+        ]
+        if words and sum(w in answer for w in words) / len(words) >= 0.5:
+            covered.append(p)
+    ratio = len(covered) / max(1, len(points))
+    level = 1 + round(4 * ratio)
+    return json.dumps(
+        {
+            "covered_points": covered,
+            "missed_points": [p for p in points if p not in covered],
+            "correctness": max(1, level),
+            "depth": max(1, level - 1),
+            "structure": 3,
+            "communication": 3,
+            "better_answer_outline": "Cover the missed key points with a concrete example.",
+        }
+    )
+
+
 def _chunk(cid: str, delta: dict, finish: str | None = None) -> str:
     payload = {
         "id": cid,
@@ -86,6 +134,23 @@ def _chunk(cid: str, delta: dict, finish: str | None = None) -> str:
 @app.post("/v1/chat/completions")
 async def completions(request: Request):
     body = await request.json()
+    if not body.get("stream"):  # the post-session judge
+        await asyncio.sleep(TTFT_SECS)
+        content = judge_reply(body["messages"])
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": "mock",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 900, "completion_tokens": 120, "total_tokens": 1020},
+        }
     tool, args, text = decide(body.get("messages", []), body.get("tools", []))
     cid = f"chatcmpl-{uuid.uuid4().hex[:12]}"
 

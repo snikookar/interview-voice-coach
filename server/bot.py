@@ -82,12 +82,13 @@ async def run_bot(
     pipeline = Pipeline(
         [
             transport.input(),
+            recorder.user_track,  # wall-clock aligned candidate audio
             stt,
             context_aggregator.user(),
             llm,
             tts,
             transport.output(),
-            recorder.audio,  # after output: records what was actually played
+            recorder.bot_track,  # after output: records what was actually played
             context_aggregator.assistant(),
         ]
     )
