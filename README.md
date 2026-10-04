@@ -7,6 +7,7 @@
 It asks role-specific technical and behavioral questions, follows up when you miss a key point,<br/>
 then scores every answer against a rubric and analyses *how* you spoke: pace, filler words and pauses.
 
+[![CI](https://github.com/snikookar/interview-voice-coach/actions/workflows/ci.yml/badge.svg)](https://github.com/snikookar/interview-voice-coach/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)
 ![Pipecat](https://img.shields.io/badge/Pipecat-voice%20pipeline-6E56CF)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
@@ -201,7 +202,7 @@ pie showData title 132 questions by topic
 **Prerequisites:** [uv](https://docs.astral.sh/uv/) and Node 20+. Docker is optional. An API key for any OpenAI-compatible LLM (DeepSeek, GLM, OpenAI, Groq…) or a local Ollama.
 
 ```bash
-git clone <your-repo-url> interview-voice-coach && cd interview-voice-coach
+git clone https://github.com/snikookar/interview-voice-coach.git && cd interview-voice-coach
 cp .env.example .env          # set LLM_API_KEY (and LLM_BASE_URL / LLM_MODEL if not DeepSeek)
 ```
 
