@@ -135,6 +135,9 @@ def _resolve_database_url() -> str:
             _embedded_server = pgserver.get_server(str(pg_dir))
             break
         except subprocess.TimeoutExpired:
+            # pgserver caches the half-started handle, and get_server() would hand it
+            # back with no postmaster info; drop it so the retry re-reads postmaster.pid.
+            pgserver.PostgresServer._instances.pop(pg_dir.resolve(), None)
             logger.warning(f"Embedded Postgres still starting (attempt {attempt}), retrying...")
             time.sleep(5)
     else:
